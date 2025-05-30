@@ -1,0 +1,97 @@
+services:
+  nginx:
+    container_name: nginx
+    build: ./requirements/nginx
+    depends_on:
+      - mariadb
+      - wordpress
+    ports:
+      - 443:443
+    volumes:
+      - ${HOME}/data/wordpress:/var/www/html:ro
+      - ./certificates/nginx:/etc/nginx/ssl:ro
+    restart: always
+    networks:
+      - network
+    healthcheck:
+      test: ["CMD", "curl", "--insecure", "https://localhost"]
+      interval: 5s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+
+  mariadb:
+    container_name: mariadb
+    build: ./requirements/mariadb
+    volumes:
+      - ${HOME}/data/mysql:/var/lib/mysql:rw
+    networks:
+      - network
+    restart: always
+    env_file:
+      - ./env/.env_mariadb
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+
+  wordpress:
+    container_name: wordpress
+    depends_on:
+      - mariadb
+    build:
+      context: ./requirements/wordpress
+    restart: always
+    env_file:
+      - ./env/.env_wordpress
+    volumes:
+      - ${HOME}/data/wordpress:/var/www/html:rw
+    networks:
+      - network
+    healthcheck:
+      test: ["CMD", "/bin/bash", "/usr/local/bin/healthcheck.sh"]
+      interval: 5s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+
+  redis:
+    container_name: redis
+    build: ./requirements/bonus/redis
+    depends_on:
+      - wordpress
+    restart: always
+    env_file:
+      - ./env/.env_redis
+    volumes:
+      - ${HOME}/data/redis:/data:rw
+    networks:
+      - network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+
+  ftp-server:
+    container_name: ftp-server
+    build: ./requirements/bonus/ftp_server
+    depends_on:
+      - wordpress
+    ports:
+      - "21:21"
+      - "21100-21110:21100-21110"
+    volumes:
+      - ${HOME}/data/wordpress:/var/www/html:rw
+    networks:
+      - network
+    restart: always
+    env_file:
+      - ./env/.env_ftp_server
+
+networks:
+  network:
+    driver: bridge

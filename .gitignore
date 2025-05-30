@@ -1,0 +1,8 @@
+# SSL Certificates
+srcs/certificates/
+*.pem
+*.crt
+*.key
+*.csr
+*.p12
+*.pfx
