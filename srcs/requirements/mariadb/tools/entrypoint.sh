@@ -2,20 +2,13 @@
 
 set -e
 
-mkdir -p /run/mysqld
-chown -R mysql:mysql /run/mysqld
-rm -f /run/mysqld/mysqld.pid
-
 if [ ! -d "/var/lib/mysql/mysql" ]; then
   echo "Initializing MariaDB data directory..."
   mysql_install_db --user=mysql --datadir=/var/lib/mysql
 fi
 
 echo "Starting MariaDB in safe mode..."
-gosu mysql mysqld_safe \
-  --skip-grant-tables \
-  --datadir=/var/lib/mysql &
-MYSQL_PID=$!
+mysqld_safe --skip-grant-tables --datadir=/var/lib/mysql & MYSQL_PID=$!
 
 timeout=30
 until mysqladmin ping --silent; do
@@ -33,9 +26,7 @@ mysql <<-EOSQL
   FLUSH PRIVILEGES;
 EOSQL
 
-if kill "$MYSQL_PID" > /dev/null 2>&1; then
-  wait "$MYSQL_PID"
-fi
+kill "$MYSQL_PID" && wait "$MYSQL_PID"
 
 echo "Starting MariaDB in foreground..."
-exec gosu mysql mysqld --datadir=/var/lib/mysql
+exec mysqld --datadir=/var/lib/mysql
