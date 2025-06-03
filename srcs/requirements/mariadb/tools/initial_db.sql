@@ -1,4 +1,0 @@
-CREATE DATABASE IF NOT EXISTS wordpress;
-CREATE USER IF NOT EXISTS 'emgul'@'%' IDENTIFIED BY 'sibercininsifresi123olur1!';
-GRANT ALL PRIVILEGES ON wordpress.* TO 'emgul'@'%';
-FLUSH PRIVILEGES;

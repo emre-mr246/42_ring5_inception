@@ -1,6 +1,8 @@
 FROM debian:bookworm-slim
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -y install --no-install-recommends \
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get -y install --no-install-recommends \
     wget \
     curl \
     ca-certificates \

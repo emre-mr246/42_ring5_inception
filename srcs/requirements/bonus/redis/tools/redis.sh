@@ -8,7 +8,6 @@ if [ ! -f "/etc/redis/redis.conf.bak" ]; then
     sed -i "s|# maxmemory <bytes>|maxmemory 2mb|g" /etc/redis/redis.conf
     sed -i "s|# maxmemory-policy noeviction|maxmemory-policy allkeys-lru|g" /etc/redis/redis.conf
     
-    # Redis kalıcı veri için yapılandırma
     sed -i "s|# save 900 1|save 900 1|g" /etc/redis/redis.conf
     sed -i "s|# save 300 10|save 300 10|g" /etc/redis/redis.conf
     sed -i "s|# save 60 10000|save 60 10000|g" /etc/redis/redis.conf

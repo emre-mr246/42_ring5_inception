@@ -4,7 +4,6 @@ WP_DIR      = $(DATA_DIR)/wordpress
 REDIS_DIR   = $(DATA_DIR)/redis
 DOCKER_COMPOSE = docker compose
 DOCKER_COMPOSE_FILE = ./srcs/docker-compose.yml
-WAIT_TIME  = 10
 
 MAKEFLAGS   = --no-print-directory
 RM          = rm -rf
@@ -48,7 +47,9 @@ fclean: clean
 	@$(RM) $(REDIS_DIR)
 	@echo "Pruning Docker system..."
 	@docker system prune -a -f
+	@docker volume prune -f
+	@sudo rm -rf ${HOME}/data/*
 
 restart: clean build
 
-.PHONY: all build kill down status logs clean fclean prune restart
+.PHONY: all build kill down status logs clean fclean restart

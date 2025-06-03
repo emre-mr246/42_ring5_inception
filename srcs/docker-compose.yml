@@ -22,16 +22,18 @@ services:
 
   mariadb:
     container_name: mariadb
+    env_file:
+      - ./env/.env_mariadb
     build: ./requirements/mariadb
     volumes:
       - ${HOME}/data/mysql:/var/lib/mysql:rw
     networks:
       - network
+    ports:
+      - "3306:3306"
     restart: always
-    env_file:
-      - ./env/.env_mariadb
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+    healthcheck:  
+      test: ["CMD", "mysqladmin", "ping", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 5s
       timeout: 10s
       start_period: 40s

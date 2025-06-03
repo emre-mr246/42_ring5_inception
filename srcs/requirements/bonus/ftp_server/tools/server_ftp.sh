@@ -7,12 +7,10 @@ if [ ! -f "/etc/vsftpd/vsftpd.conf.bak" ]; then
     cp /etc/vsftpd/vsftpd.conf /etc/vsftpd/vsftpd.conf.bak
     mv /tmp/vsftpd.conf /etc/vsftpd/vsftpd.conf
 
-    # Güvenli kullanıcı oluşturma
     echo "Creating FTP user: $FTP_USR"
     adduser $FTP_USR --disabled-password --gecos ""
     echo "$FTP_USR:$FTP_PWD" | chpasswd
     
-    # Güvenli dizin izinleri
     chown -R $FTP_USR:$FTP_USR /var/www/html
     chmod 755 /var/www/html
 
