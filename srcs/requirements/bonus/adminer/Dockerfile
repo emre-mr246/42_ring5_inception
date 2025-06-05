@@ -1,0 +1,32 @@
+FROM debian:12-slim
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      php8.2-cli \
+      php8.2-mysql \
+      wget \
+      ca-certificates \
+      curl \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd --system adminer \
+ && useradd --system --gid adminer --home-dir /var/www/html adminer \
+ && mkdir -p /var/www/html \
+ && chown adminer:adminer /var/www/html
+
+WORKDIR /var/www/html
+
+ARG ADMINER_VERSION=5.3.0
+ARG ADMINER_FILENAME=adminer-${ADMINER_VERSION}-mysql-en.php
+ARG ADMINER_SHA256=ff627c90795371e2c81c1815902fdce80833f5630f3c9a2dc864244da6784f2d
+RUN wget -qO index.php \
+    https://github.com/vrana/adminer/releases/download/v${ADMINER_VERSION}/${ADMINER_FILENAME} \
+    && echo "${ADMINER_SHA256}  index.php" | sha256sum -c -
+
+RUN chown -R adminer:adminer /var/www/html
+
+USER adminer
+
+EXPOSE 8080
+
+CMD ["php", "-S", "0.0.0.0:8080", "-t", "/var/www/html"]

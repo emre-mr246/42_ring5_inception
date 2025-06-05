@@ -39,6 +39,25 @@ services:
       start_period: 40s
       retries: 3
 
+  adminer:
+    container_name: adminer
+    build: ./requirements/bonus/adminer
+    depends_on:
+      - mariadb
+    ports:
+      - "8080:8080"
+    networks:
+      - network
+    restart: always
+    env_file:
+      - ./env/.env_adminer
+    healthcheck:
+      test: ["CMD", "php", "-l", "/var/www/html/index.php"]
+      interval: 5s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+
   wordpress:
     container_name: wordpress
     depends_on:
