@@ -8,7 +8,7 @@ services:
     ports:
       - 443:443
     volumes:
-      - ${HOME}/data/wordpress:/var/www/html:ro
+      - wordpress_data:/var/www/html:ro
       - ./certificates/nginx:/etc/nginx/ssl:ro
     restart: always
     networks:
@@ -26,7 +26,7 @@ services:
       - ./env/.env_mariadb
     build: ./requirements/mariadb
     volumes:
-      - ${HOME}/data/mysql:/var/lib/mysql:rw
+      - mariadb_data:/var/lib/mysql:rw
     networks:
       - network
     ports:
@@ -68,7 +68,7 @@ services:
     env_file:
       - ./env/.env_wordpress
     volumes:
-      - ${HOME}/data/wordpress:/var/www/html:rw
+      - wordpress_data:/var/www/html:rw
     networks:
       - network
     healthcheck:
@@ -87,7 +87,7 @@ services:
     env_file:
       - ./env/.env_redis
     volumes:
-      - ${HOME}/data/redis:/data:rw
+      - redis_data:/data:rw
     networks:
       - network
     healthcheck:
@@ -106,12 +106,29 @@ services:
       - "21:21"
       - "21100-21110:21100-21110"
     volumes:
-      - ${HOME}/data/wordpress:/var/www/html:rw
+      - wordpress_data:/var/www/html:rw
     networks:
       - network
     restart: always
     env_file:
       - ./env/.env_ftp_server
+
+volumes:
+  mariadb_data:
+    driver_opts:
+      type: 'none'
+      o: bind
+      device: ${HOME}/data/mysql
+  wordpress_data:
+    driver_opts:
+      type: 'none'
+      o: bind
+      device: ${HOME}/data/wordpress
+  redis_data:
+    driver_opts:
+      type: 'none'
+      o: bind
+      device: ${HOME}/data/redis
 
 networks:
   network:
