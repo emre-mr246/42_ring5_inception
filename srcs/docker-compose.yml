@@ -1,135 +1,128 @@
 services:
   nginx:
-    container_name: nginx
-    build: ./requirements/nginx
-    depends_on:
-      - mariadb
-      - wordpress
+    image: nginx-42
     ports:
       - 443:443
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
     volumes:
       - wordpress_data:/var/www/html:ro
       - ./certificates/nginx:/etc/nginx/ssl:ro
-    restart: always
     networks:
-      - network
-    healthcheck:
-      test: ["CMD", "curl", "--insecure", "https://localhost"]
-      interval: 5s
-      timeout: 10s
-      start_period: 40s
-      retries: 3
+      - inception_network
+    # healthcheck:
+    #   test: ["CMD-SHELL", "curl", "--insecure", "https://localhost"]
+    #   interval: 5s
+    #   timeout: 10s
+    #   start_period: 40s
+    #   retries: 3
 
   mariadb:
-    container_name: mariadb
     env_file:
       - ./env/.env_mariadb
-    build: ./requirements/mariadb
+    image: mariadb-42
     volumes:
       - mariadb_data:/var/lib/mysql:rw
     networks:
-      - network
+      - inception_network
     ports:
       - "3306:3306"
-    restart: always
-    healthcheck:  
-      test: ["CMD", "mysqladmin", "ping", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
-      interval: 5s
-      timeout: 10s
-      start_period: 40s
-      retries: 3
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    # healthcheck:
+    #   test: ["CMD-SHELL", "mysqladmin", "ping", "-u${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
+    #   interval: 5s
+    #   timeout: 10s
+    #   start_period: 40s
+    #   retries: 3
 
   adminer:
-    container_name: adminer
-    build: ./requirements/bonus/adminer
-    depends_on:
-      - mariadb
+    image: adminer-42
     ports:
       - "8080:8080"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
     networks:
-      - network
-    restart: always
+      - inception_network
     env_file:
       - ./env/.env_adminer
     healthcheck:
-      test: ["CMD", "php", "-l", "/var/www/html/index.php"]
+      test: ["CMD-SHELL", "php", "-l", "/var/www/html/index.php"]
       interval: 5s
       timeout: 10s
       start_period: 40s
       retries: 3
 
   wordpress:
-    container_name: wordpress
-    depends_on:
-      - mariadb
-    build:
-      context: ./requirements/wordpress
-    restart: always
+    image: wordpress-42
     env_file:
       - ./env/.env_wordpress
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
     volumes:
       - wordpress_data:/var/www/html:rw
     networks:
-      - network
+      - inception_network
     healthcheck:
-      test: ["CMD", "/bin/bash", "/usr/local/bin/healthcheck.sh"]
+      test: ["CMD-SHELL", "/bin/bash", "/usr/local/bin/healthcheck.sh"]
       interval: 5s
       timeout: 10s
       start_period: 40s
       retries: 3
 
   redis:
-    container_name: redis
-    build: ./requirements/bonus/redis
-    depends_on:
-      - wordpress
-    restart: always
+    image: redis-42
     env_file:
       - ./env/.env_redis
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
     volumes:
       - redis_data:/data:rw
     networks:
-      - network
+      - inception_network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli", "ping"]
       interval: 5s
       timeout: 10s
       start_period: 40s
       retries: 3
 
   ftp-server:
-    container_name: ftp-server
-    build: ./requirements/bonus/ftp_server
-    depends_on:
-      - wordpress
+    image: ftp-server-42
     ports:
       - "21:21"
       - "21100-21110:21100-21110"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
     volumes:
       - wordpress_data:/var/www/html:rw
     networks:
-      - network
-    restart: always
+      - inception_network
     env_file:
       - ./env/.env_ftp_server
+    # TODO healthcheck eklenecek
 
 volumes:
   mariadb_data:
-    driver_opts:
-      type: 'none'
-      o: bind
-      device: ${HOME}/data/mysql
+    external: true
   wordpress_data:
-    driver_opts:
-      type: 'none'
-      o: bind
-      device: ${HOME}/data/wordpress
+    external: true
   redis_data:
-    driver_opts:
-      type: 'none'
-      o: bind
-      device: ${HOME}/data/redis
+    external: true
 
 networks:
-  network:
-    driver: bridge
+  inception_network:
+    driver: overlay
+    external: true

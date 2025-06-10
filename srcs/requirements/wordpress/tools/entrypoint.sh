@@ -2,6 +2,16 @@
 
 set -eu
 
+until mysql -h"$WORDPRESS_DB_HOST" -u"$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" -e "SELECT 1;" 2>/dev/null; do
+  echo "Waiting for MariaDB to be ready..."
+  sleep 2
+done
+
+until nc -z redis 6379; do
+  echo "Waiting for Redis to be ready..."
+  sleep 2
+done
+
 umask 027
 
 WORDPRESS_ARCHIVE="wordpress-6.8.1.tar.gz"

@@ -2,43 +2,98 @@ DATA_DIR    = $(HOME)/data
 MYSQL_DIR   = $(DATA_DIR)/mysql
 WP_DIR      = $(DATA_DIR)/wordpress
 REDIS_DIR   = $(DATA_DIR)/redis
-DOCKER_COMPOSE = docker compose
-DOCKER_COMPOSE_FILE = ./srcs/docker-compose.yml
 
 MAKEFLAGS   = --no-print-directory
 RM          = rm -rf
 MKDIR       = mkdir -p
 
+IMAGES = mariadb-42 nginx-42 wordpress-42 ftp-server-42 redis-42 adminer-42
+BUILD_PATHS = \
+    DOCKER_BUILDKIT=0 docker build -t mariadb-42 ./srcs/requirements/mariadb && \
+    DOCKER_BUILDKIT=0 docker build -t nginx-42 ./srcs/requirements/nginx && \
+    DOCKER_BUILDKIT=0 docker build -t wordpress-42 ./srcs/requirements/wordpress && \
+    DOCKER_BUILDKIT=0 docker build -t ftp-server-42 ./srcs/requirements/bonus/ftp_server && \
+    DOCKER_BUILDKIT=0 docker build -t redis-42 ./srcs/requirements/bonus/redis && \
+    DOCKER_BUILDKIT=0 docker build -t adminer-42 ./srcs/requirements/bonus/adminer
+
+DOCKER_COMPOSE_FILE = ./srcs/docker-compose.yml
+STACK_NAME  = inception
+SWARM_ARGS = --advertise-addr 127.0.0.1
+
 all: build
 
-build:
-	@echo "Creating data directories...@"
+get_ip:
+	@echo "Host IP addresses:"
+	@hostname -I
+	@echo "\nNginx service info:"
+	@docker service ps inception_nginx --format "table {{.Name}}\t{{.Node}}\t{{.CurrentState}}"
+	@echo "\nAccess your site at: https://$(shell hostname -I | awk '{print $$1}'):443"
+
+init_swarm:
+	@docker info --format '{{.Swarm.ControlAvailable}}' | grep -q active || \
+    docker swarm init $(SWARM_ARGS)
+
+create_directories:
+	@echo "Creating data directories..."
 	@$(MKDIR) $(MYSQL_DIR)
 	@$(MKDIR) $(WP_DIR)
 	@$(MKDIR) $(REDIS_DIR)
-	@echo "Building and starting containers..."
-	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) up --build -d --remove-orphans
+
+create_network:
+	@docker network inspect inception_network >/dev/null 2>&1 || \
+    docker network create --driver=overlay inception_network
+
+build_images:
+	@echo "Building Docker images..."
+	@$(BUILD_PATHS)
+	@echo "Images built successfully."
+
+create_volumes: fix_perms
+	@docker volume create --driver local \
+		--opt type=none --opt o=bind --opt device=$(MYSQL_DIR) mariadb_data || true
+	@docker volume create --driver local \
+		--opt type=none --opt o=bind --opt device=$(WP_DIR) wordpress_data || true
+	@docker volume create --driver local \
+		--opt type=none --opt o=bind --opt device=$(REDIS_DIR) redis_data || true
+
+fix_perms: create_directories
+	@sudo chown -R 999:999 $(MYSQL_DIR)
+	@sudo chown -R 999:999 $(REDIS_DIR)
+	@sudo chown -R 33:33 $(WP_DIR)
+
+build: init_swarm create_network build_images create_volumes 
+	@echo "Deploying stack to Docker Swarm..."
+	@docker stack deploy -c $(DOCKER_COMPOSE_FILE) $(STACK_NAME)
 	@sleep 15 && make $(MAKEFLAGS) status
+	@make get_ip
 
 kill:
 	@echo "Killing all containers..."
-	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) kill
+	@docker swarm init $(SWARM_ARGS) 2>/dev/null || true
+	@docker stack rm $(STACK_NAME)
 
 down:
 	@echo "Stopping and removing containers..."
-	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) down
+	@docker swarm init $(SWARM_ARGS) 2>/dev/null || true
+	@docker stack rm $(STACK_NAME)
 
 status:
 	@echo "\n"
-	@docker ps -a
+	@docker stack ps inception
 
-logs:
-	@echo "Following container logs (Ctrl+C to exit)..."
-	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) logs -f
+exec:
+	@read -p "Container name: " cname; \
+	cid=$$(docker ps -q --filter "name=$$cname"); \
+	if [ -z "$$cid" ]; then \
+		echo "Container not found!"; \
+	else \
+		docker exec -it $$cid bash; \
+	fi
 
 clean:
 	@echo "Cleaning up containers and volumes..."
-	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) down -v
+	@docker stack rm $(STACK_NAME)
+	@docker network rm inception_network 2>/dev/null || true
 
 fclean: clean
 	@echo "Removing data directories..."
@@ -48,8 +103,9 @@ fclean: clean
 	@echo "Pruning Docker system..."
 	@docker system prune -a -f
 	@docker volume prune -f
-	@sudo rm -rf ${HOME}/data/*
-
+	@rm -rf ${HOME}/data/*
+	@docker swarm leave --force 2>/dev/null || true
+	
 restart: clean build
 
 .PHONY: all build kill down status logs clean fclean restart

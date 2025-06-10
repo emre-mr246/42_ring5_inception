@@ -15,6 +15,7 @@ RUN apt-get update && apt-get -y install --no-install-recommends \
     php8.2-xml \
     php8.2-zip \
     php-redis \
+    netcat-openbsd \
     mariadb-client && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -29,11 +30,11 @@ RUN mkdir -p /var/www/html /run/php \
  && chown -R www-data:www-data /var/www/html /run/php \
  && chmod -R 775 /var/www/html /run/php
 
-COPY ./tools/create_wordpress.sh /usr/local/bin/create_wordpress.sh
-RUN chmod +x /usr/local/bin/create_wordpress.sh
+COPY ./tools/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 WORKDIR /var/www/html
 
 EXPOSE 9000
 
-ENTRYPOINT ["/usr/local/bin/create_wordpress.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

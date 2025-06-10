@@ -12,7 +12,6 @@ if [ ! -f "/etc/redis/redis.conf.bak" ]; then
     sed -i "s|# save 300 10|save 300 10|g" /etc/redis/redis.conf
     sed -i "s|# save 60 10000|save 60 10000|g" /etc/redis/redis.conf
     echo "dir /data" >> /etc/redis/redis.conf
-
 fi
 
 redis-server --protected-mode no
