@@ -94,6 +94,7 @@ clean:
 	@echo "Cleaning up containers and volumes..."
 	@docker stack rm $(STACK_NAME)
 	@docker network rm inception_network 2>/dev/null || true
+	@docker swarm leave --force 2>/dev/null || true
 
 fclean: clean
 	@echo "Removing data directories..."
@@ -104,8 +105,7 @@ fclean: clean
 	@docker system prune -a -f
 	@docker volume prune -f
 	@rm -rf ${HOME}/data/*
-	@docker swarm leave --force 2>/dev/null || true
-	
+
 restart: clean build
 
 .PHONY: all build kill down status logs clean fclean restart
