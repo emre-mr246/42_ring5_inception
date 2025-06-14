@@ -49,6 +49,11 @@ create_network:
 	@docker network inspect inception_network >/dev/null 2>&1 || \
     docker network create --driver=overlay inception_network
 
+generate_certs:
+	@echo "Generating SSL certificates..."
+	@bash ./scripts/generate_ssl.sh
+	@echo "SSL certificates generated."
+
 build_images:
 	@echo "Building Docker images..."
 	@$(BUILD_PATHS)
@@ -75,7 +80,7 @@ fix_perms: create_directories
 	@sudo chown -R 1000:1000 $(DATA_DIR)/static_page
 	@echo "Permissions fixed successfully."
 
-build: init_swarm create_network build_images create_volumes 
+build: init_swarm create_network generate_certs build_images create_volumes 
 	@echo "Deploying stack to Docker Swarm..."
 	@docker stack deploy -c $(DOCKER_COMPOSE_FILE) $(STACK_NAME)
 	@sleep 10 && make $(MAKEFLAGS) status
@@ -86,7 +91,7 @@ kill:
 	@docker swarm init $(SWARM_ARGS) 2>/dev/null || true
 	@docker stack rm $(STACK_NAME)
 
-down:
+down: clean
 	@echo "Stopping and removing containers..."
 	@docker swarm init $(SWARM_ARGS) 2>/dev/null || true
 	@docker stack rm $(STACK_NAME)
@@ -113,13 +118,13 @@ clean:
 
 fclean: clean
 	@echo "Removing data directories..."
-	@$(RM) $(MYSQL_DIR)
-	@$(RM) $(WP_DIR)
-	@$(RM) $(REDIS_DIR)
+	@sudo $(RM) $(MYSQL_DIR)
+	@sudo $(RM) $(WP_DIR)
+	@sudo $(RM) $(REDIS_DIR)
 	@echo "Pruning Docker system..."
 	@docker system prune -a -f
 	@docker volume prune -f
-	@rm -rf ${HOME}/data/*
+	@sudo rm -rf ${HOME}/data/*
 
 restart: clean build
 
