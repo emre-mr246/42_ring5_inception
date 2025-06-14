@@ -10,6 +10,7 @@ services:
     volumes:
       - wordpress_data:/var/www/html:ro
       - ./certificates/nginx:/etc/nginx/ssl:ro
+      - static_page_data:/var/www/static_page:ro
     networks:
       - inception_network
     healthcheck:
@@ -112,12 +113,37 @@ services:
       - inception_network
     env_file:
       - ./env/.env_ftp_server
-    healthcheck:
-      test: ["CMD", "curl", "--silent", "--fail", "ftp://localhost:21"]
-      interval: 5s
-      timeout: 10s
-      start_period: 40s
-      retries: 3
+
+  log-collector:
+    image: log-collector-42
+    build:
+      context: ./requirements/bonus/log-collector
+      dockerfile: Dockerfile
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - logs_data:/mnt/log_backups
+    env_file:
+      - ./env/.env_log_collector
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+      restart_policy:
+        condition: on-failure
+
+  static-page:
+    image: static-page-42
+    build:
+      context: ./requirements/bonus/static_page
+      dockerfile: Dockerfile
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    volumes:
+      - static_page_data:/var/www/html
+    networks:
+      - inception_network
 
 volumes:
   mariadb_data:
@@ -125,6 +151,10 @@ volumes:
   wordpress_data:
     external: true
   redis_data:
+    external: true
+  static_page_data:
+    external: true
+  logs_data:
     external: true
 
 networks:
