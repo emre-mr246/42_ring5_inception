@@ -46,7 +46,7 @@ This project includes the following services:
 
 1.  **Clone the repository (if you haven't already):**
     ```bash
-    git clone <repository_url>
+    git clone <repository_url> inception
     cd inception
     ```
 

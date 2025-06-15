@@ -120,7 +120,7 @@ clean:
 	@docker stack rm $(STACK_NAME)
 	@docker network rm inception_network 2>/dev/null || true
 	@echo "Removing Docker secrets..."
-	@docker secret rm mysql_database mysql_user mysql_password mysql_root_password 2>/dev/null || true
+	@docker secret rm mysql_database mysql_user mysql_password mysql_root_password 2tü>/dev/null || true
 	@docker secret rm wordpress_db_name wordpress_db_user wordpress_db_password wordpress_db_host 2>/dev/null || true
 	@docker secret rm redis_password ftp_user ftp_password adminer_default_server domain_name 2>/dev/null || true
 	@docker swarm leave --force 2>/dev/null || true
@@ -137,4 +137,4 @@ fclean: clean
 
 restart: clean build
 
-.PHONY: all build kill down status logs clean fclean restart
+.PHONY: all build kill down status logs clean fclean restart exec create_directories create_network generate_certs build_images create_volumes fix_perms create_secrets init_swarm get_ip
