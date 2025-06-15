@@ -2,7 +2,6 @@
 
 export FTP_PWD=$(cat /run/secrets/ftp_password)
 
-
 if [ ! -f "/etc/vsftpd/vsftpd.conf.bak" ]; then
 
     mkdir -p /var/www/html

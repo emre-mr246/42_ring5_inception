@@ -2,6 +2,8 @@
 
 set -eu
 
+export WORDPRESS_DB_PASSWORD=$(cat /run/secrets/wordpress_db_password)
+
 until mysql -h"$WORDPRESS_DB_HOST" -u"$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" -e "SELECT 1;" 2>/dev/null; do
   echo "Waiting for MariaDB to be ready..."
   sleep 2

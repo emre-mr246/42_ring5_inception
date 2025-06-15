@@ -7,6 +7,7 @@ RUN apt-get update \
       wget \
       ca-certificates \
       curl \
+      netcat-openbsd \
  && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd --system adminer \
@@ -23,10 +24,13 @@ RUN wget -qO index.php \
     https://github.com/vrana/adminer/releases/download/v${ADMINER_VERSION}/${ADMINER_FILENAME} \
     && echo "${ADMINER_SHA256}  index.php" | sha256sum -c -
 
+COPY tools/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 RUN chown -R adminer:adminer /var/www/html
 
 USER adminer
 
 EXPOSE 8080
 
-CMD ["php", "-S", "0.0.0.0:8080", "-t", "/var/www/html"]
+CMD ["/usr/local/bin/entrypoint.sh"]

@@ -59,6 +59,7 @@ This project includes the following services:
     *   Create necessary data directories (`~/data/*`).
     *   Create a Docker network named `inception_network`.
     *   Generate SSL certificates.
+    *   Create Docker Swarm secrets for secure credential management.
     *   Build all Docker images for the services.
     *   Create Docker volumes for persistent data.
     *   Fix permissions for data directories.

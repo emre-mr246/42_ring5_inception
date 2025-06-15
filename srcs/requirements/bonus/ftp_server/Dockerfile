@@ -11,12 +11,12 @@ RUN apk update && apk upgrade && apk add --no-cache \
 
 COPY conf/vsftpd.conf /tmp/vsftpd.conf
 
-COPY tools/server_ftp.sh /tmp/server_ftp.sh
+COPY tools/entrypoint.sh /tmp/entrypoint.sh
 
-RUN chmod +x /tmp/server_ftp.sh && \
+RUN chmod +x /tmp/entrypoint.sh && \
     chmod 600 /tmp/vsftpd.conf
 
 HEALTHCHECK --interval=10s --timeout=10s --start-period=15s --retries=3 \
     CMD pgrep vsftpd > /dev/null || exit 1
 
-ENTRYPOINT ["sh", "/tmp/server_ftp.sh"]
+ENTRYPOINT ["sh", "/tmp/entrypoint.sh"]

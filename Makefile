@@ -80,7 +80,12 @@ fix_perms: create_directories
 	@sudo chown -R 1000:1000 $(DATA_DIR)/static_page
 	@echo "Permissions fixed successfully."
 
-build: init_swarm create_network generate_certs build_images create_volumes 
+create_secrets:
+	@echo "Creating Docker Swarm secrets..."
+	@bash ./scripts/create_secrets.sh
+	@echo "Secrets created successfully."
+
+build: init_swarm create_network generate_certs create_secrets build_images create_volumes 
 	@echo "Deploying stack to Docker Swarm..."
 	@docker stack deploy -c $(DOCKER_COMPOSE_FILE) $(STACK_NAME)
 	@sleep 10 && make $(MAKEFLAGS) status
@@ -114,6 +119,10 @@ clean:
 	@echo "Cleaning up containers and volumes..."
 	@docker stack rm $(STACK_NAME)
 	@docker network rm inception_network 2>/dev/null || true
+	@echo "Removing Docker secrets..."
+	@docker secret rm mysql_database mysql_user mysql_password mysql_root_password 2>/dev/null || true
+	@docker secret rm wordpress_db_name wordpress_db_user wordpress_db_password wordpress_db_host 2>/dev/null || true
+	@docker secret rm redis_password ftp_user ftp_password adminer_default_server domain_name 2>/dev/null || true
 	@docker swarm leave --force 2>/dev/null || true
 
 fclean: clean

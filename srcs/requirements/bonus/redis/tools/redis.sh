@@ -1,5 +1,9 @@
 #!/bin/sh
 
+if [ -f /run/secrets/redis_password ]; then
+    export REDIS_PASSWORD=$(cat /run/secrets/redis_password)
+fi
+
 if [ ! -f "/etc/redis/redis.conf.bak" ]; then
 
     cp /etc//redis/redis.conf /etc/redis/redis.conf.bak
@@ -12,6 +16,10 @@ if [ ! -f "/etc/redis/redis.conf.bak" ]; then
     sed -i "s|# save 300 10|save 300 10|g" /etc/redis/redis.conf
     sed -i "s|# save 60 10000|save 60 10000|g" /etc/redis/redis.conf
     echo "dir /data" >> /etc/redis/redis.conf
+    
+    if [ -n "${REDIS_PASSWORD:-}" ]; then
+        echo "requirepass $REDIS_PASSWORD" >> /etc/redis/redis.conf
+    fi
 fi
 
 redis-server --protected-mode no
