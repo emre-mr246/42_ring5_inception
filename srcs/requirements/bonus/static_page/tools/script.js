@@ -58,6 +58,8 @@ function showSuccessMessageAndConfetti() {
 	messageElement.style.color = '#28a745';
 	messageElement.style.fontWeight = 'bold';
 	messageElement.style.display = 'block';
+	const congratsImg = document.getElementById('congratsImg');
+	congratsImg.style.display = 'block';
 	createConfetti();
 }
 
