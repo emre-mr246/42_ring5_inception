@@ -25,16 +25,18 @@ SWARM_ARGS = --advertise-addr 127.0.0.1
 
 all: build
 
-get_ip:
-	@echo "Host IP addresses:"
-	@hostname -I
-	@echo "\nNginx service info:"
-	@docker service ps inception_nginx --format "table {{.Name}}\t{{.Node}}\t{{.CurrentState}}"
-	@echo "\nAccess your site at: https://$(shell hostname -I | awk '{print $$1}'):443"
+build: init_swarm create_network generate_certs create_secrets build_images create_volumes
+	@echo "Deploying stack to Docker Swarm..."
+	@docker stack deploy -c $(DOCKER_COMPOSE_FILE) $(STACK_NAME)
+	@sleep 10 && make $(MAKEFLAGS) status
 
 init_swarm:
-	@docker info --format '{{.Swarm.ControlAvailable}}' | grep -q active || \
-    docker swarm init $(SWARM_ARGS)
+	@if ! docker info --format '{{.Swarm.ControlAvailable}}' | grep -q true; then \
+		echo "Initializing Docker Swarm..."; \
+		docker swarm init $(SWARM_ARGS); \
+	else \
+		echo "Docker Swarm is already initialized."; \
+	fi
 
 create_directories:
 	@echo "Creating data directories..."
@@ -47,7 +49,7 @@ create_directories:
 
 create_network:
 	@docker network inspect inception_network >/dev/null 2>&1 || \
-    docker network create --driver=overlay inception_network
+	docker network create --driver=overlay inception_network
 
 generate_certs:
 	@echo "Generating SSL certificates..."
@@ -85,22 +87,7 @@ create_secrets:
 	@bash ./scripts/create_secrets.sh
 	@echo "Secrets created successfully."
 
-build: init_swarm create_network generate_certs create_secrets build_images create_volumes 
-	@echo "Deploying stack to Docker Swarm..."
-	@docker stack deploy -c $(DOCKER_COMPOSE_FILE) $(STACK_NAME)
-	@sleep 10 && make $(MAKEFLAGS) status
-	@make get_ip
-
-kill:
-	@echo "Killing all containers..."
-	@docker swarm init $(SWARM_ARGS) 2>/dev/null || true
-	@docker stack rm $(STACK_NAME)
-
 down: clean
-	@echo "Stopping and removing containers..."
-	@docker swarm init $(SWARM_ARGS) 2>/dev/null || true
-	@docker stack rm $(STACK_NAME)
-	@make $(MAKEFLAGS) clean
 
 status:
 	@echo "\n"
@@ -119,17 +106,25 @@ clean:
 	@echo "Cleaning up containers and volumes..."
 	@docker stack rm $(STACK_NAME)
 	@docker network rm inception_network 2>/dev/null || true
-	@echo "Removing Docker secrets..."
-	@docker secret rm mysql_database mysql_user mysql_password mysql_root_password 2tü>/dev/null || true
-	@docker secret rm wordpress_db_name wordpress_db_user wordpress_db_password wordpress_db_host 2>/dev/null || true
-	@docker secret rm redis_password ftp_user ftp_password adminer_default_server domain_name 2>/dev/null || true
 	@docker swarm leave --force 2>/dev/null || true
 
-fclean: clean
-	@echo "Removing data directories..."
+clear_secrets:
+	@echo "Removing Docker secrets..."
+	@docker secret rm mysql_password mysql_root_password 2>/dev/null || true
+	@docker secret rm wordpress_db_password 2>/dev/null || true
+	@docker secret rm redis_password ftp_password  2>/dev/null || true
+
+clear_data:
+	@echo "Clearing data directories..."
 	@sudo $(RM) $(MYSQL_DIR)
 	@sudo $(RM) $(WP_DIR)
 	@sudo $(RM) $(REDIS_DIR)
+	@sudo $(RM) $(STATIC_PAGE_DIR)
+	@sudo $(RM) $(LOG_DIR)
+	@sudo $(RM) .passwords
+	@echo "Data directories cleared successfully."
+
+fclean: clean clear_data clear_secrets
 	@echo "Pruning Docker system..."
 	@docker system prune -a -f
 	@docker volume prune -f
@@ -137,4 +132,4 @@ fclean: clean
 
 restart: clean build
 
-.PHONY: all build kill down status logs clean fclean restart exec create_directories create_network generate_certs build_images create_volumes fix_perms create_secrets init_swarm get_ip
+.PHONY: all build down status logs clean fclean restart exec create_directories create_network generate_certs build_images create_volumes fix_perms create_secrets init_swarm

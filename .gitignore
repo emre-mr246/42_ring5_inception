@@ -6,3 +6,6 @@ srcs/certificates/
 *.csr
 *.p12
 *.pfx
+
+# Passwords
+.passwords
