@@ -1,7 +1,7 @@
 #!/bin/bash
 
 generate_password() {
-    openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 16
+    openssl rand -base64 100 | tr -dc 'a-zA-Z0-9' | head -c 70
 }
 
 PASSWORDS_FILE=".passwords"
