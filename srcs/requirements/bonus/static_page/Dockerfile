@@ -1,22 +1,20 @@
 FROM debian:12-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-	curl \
-	ca-certificates \
-	openssl \
-	netcat-openbsd \
-	dnsutils \
-	iputils-ping \
-	nodejs \
-	npm && \
-	apt-get clean && \
-	rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN groupadd --system staticpage && \
+    useradd --system --gid staticpage --home-dir /app staticpage
 
 WORKDIR /app
 
 COPY ./tools /app
 
+RUN mkdir -p /var/www/html && \
+    chown -R staticpage:staticpage /app /var/www/html && \
+    chmod -R 755 /app /var/www/html
+
 COPY ./tools/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh && \
+    chown staticpage:staticpage /usr/local/bin/entrypoint.sh
+
+USER staticpage
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

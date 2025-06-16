@@ -121,9 +121,6 @@ services:
 
   log-collector:
     image: log-collector-42
-    build:
-      context: ./requirements/bonus/log-collector
-      dockerfile: Dockerfile
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - logs_data:/mnt/log_backups
@@ -144,9 +141,6 @@ services:
 
   static-page:
     image: static-page-42
-    build:
-      context: ./requirements/bonus/static_page
-      dockerfile: Dockerfile
     deploy:
       replicas: 1
       restart_policy:
@@ -155,6 +149,12 @@ services:
       - static_page_data:/var/www/html
     networks:
       - inception_network
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /var/www/html/index.html"]
+      interval: 10s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
 
 secrets:
   mysql_password:
