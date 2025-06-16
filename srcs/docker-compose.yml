@@ -26,8 +26,6 @@ services:
       - mariadb_data:/var/lib/mysql:rw
     networks:
       - inception_network
-    ports:
-      - "3306:3306"
     deploy:
       replicas: 1
       restart_policy:
@@ -72,7 +70,7 @@ services:
     env_file:
       - ./env/.env_wordpress
     healthcheck:
-      test: ["CMD-SHELL", "/bin/bash", "/usr/local/bin/healthcheck.sh"]
+      test: ["CMD-SHELL", "/usr/local/bin/healthcheck.sh"]
       interval: 5s
       timeout: 10s
       start_period: 40s

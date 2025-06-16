@@ -30,7 +30,7 @@ run_wp() {
     TMP_ARGS="$(mktemp /tmp/wp_args.XXXXXX)"
     printf '%s\0' "$@" > "$TMP_ARGS"
     chown www-data:www-data "$TMP_ARGS"
-    su -s /bin/sh www-data -c "cd /var/www/html && HTTP_HOST='${DOMAIN_NAME}' SERVER_NAME='${DOMAIN_NAME}' xargs -0 -a '$TMP_ARGS' -- wp"
+    gosu www-data sh -c "cd /var/www/html && HTTP_HOST='${DOMAIN_NAME}' SERVER_NAME='${DOMAIN_NAME}' xargs -0 -a '$TMP_ARGS' -- wp"
     local status=$?
     rm -f "$TMP_ARGS"
     return $status
@@ -40,6 +40,8 @@ export WP_CLI_CACHE_DIR="/tmp/wp-cli-cache"
 mkdir -p "$WP_CLI_CACHE_DIR"
 chown www-data:www-data "$WP_CLI_CACHE_DIR"
 
+chown -R www-data:www-data /var/www/html /run/php
+
 if [ -f "./$CONFIG_FILE" ]; then
     log "WordPress already exists. Skipping download."
 else
@@ -47,7 +49,9 @@ else
 
     wget -q "https://wordpress.org/${WORDPRESS_ARCHIVE}"
     tar -xzf "$WORDPRESS_ARCHIVE"
+    
     mv "$WORDPRESS_DIR"/* ./
+    chown -R www-data:www-data .
 
     cp "$SAMPLE_CONFIG" "$CONFIG_FILE"
 
@@ -59,9 +63,12 @@ else
     log "WordPress configuration complete."
 fi
 
-chown -R www-data:www-data .
-chmod -R 755 .
-chmod 644 "$CONFIG_FILE"
+chown -R www-data:www-data /var/www/html
+chmod -R 755 /var/www/html
+chmod 644 "$CONFIG_FILE" || true
+mkdir -p wp-content
+chown -R www-data:www-data wp-content
+chmod -R 775 wp-content
 
 until mysql -h "$WORDPRESS_DB_HOST" -u "$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" -e ";" 2>/dev/null; do
     log "Waiting for database connection..."
@@ -123,4 +130,4 @@ done
 
 echo "[OK] WordPress is installed and configured."
 
-exec php-fpm8.2 -F
+exec gosu www-data php-fpm8.2 -F
