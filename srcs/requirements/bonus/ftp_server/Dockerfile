@@ -1,23 +1,19 @@
-FROM alpine:3.21.3
+FROM debian:12-slim
 
-RUN apk update && apk upgrade && apk add --no-cache \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
         vsftpd \
-        openssl \
-        shadow \
         bash \
+        passwd \
         netcat-openbsd \
-        && rm -rf /var/cache/apk/* \
-           /tmp/* \
-           /var/tmp/* \
-           /usr/share/man/* \
-           /usr/share/doc/*
+        ca-certificates \
+        && rm -rf /var/lib/apt/lists/*
 
-COPY conf/vsftpd.conf /tmp/vsftpd.conf
-
+COPY conf/vsftpd.conf /etc/vsftpd.conf
 COPY tools/entrypoint.sh /tmp/entrypoint.sh
 
 RUN chmod +x /tmp/entrypoint.sh && \
-    chmod 600 /tmp/vsftpd.conf && \
+    chmod 644 /etc/vsftpd.conf && \
     mkdir -p /var/www/html && \
     chmod 755 /var/www/html && \
     mkdir -p /var/log/vsftpd && \
@@ -28,7 +24,4 @@ RUN chmod +x /tmp/entrypoint.sh && \
     mkdir -p /var/run/vsftpd && \
     chmod 755 /var/run/vsftpd
 
-HEALTHCHECK --interval=10s --timeout=10s --start-period=15s --retries=3 \
-    CMD nc -z localhost 21 || exit 1
-
-ENTRYPOINT ["sh", "/tmp/entrypoint.sh"]
+ENTRYPOINT ["/bin/bash", "/tmp/entrypoint.sh"]

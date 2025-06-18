@@ -56,6 +56,11 @@ generate_certs:
 	@bash ./scripts/generate_ssl.sh
 	@echo "SSL certificates generated."
 
+create_secrets:
+	@echo "Creating Docker Swarm secrets..."
+	@bash ./scripts/create_secrets.sh
+	@echo "Secrets created successfully."
+
 build_images:
 	@echo "Building Docker images..."
 	@$(BUILD_PATHS)
@@ -82,10 +87,6 @@ fix_perms: create_directories
 	@sudo chown -R 1000:1000 $(DATA_DIR)/static_page
 	@echo "Permissions fixed successfully."
 
-create_secrets:
-	@echo "Creating Docker Swarm secrets..."
-	@bash ./scripts/create_secrets.sh
-	@echo "Secrets created successfully."
 
 down: clean
 
