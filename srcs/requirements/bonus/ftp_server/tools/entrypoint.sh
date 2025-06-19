@@ -1,6 +1,6 @@
 #!/bin/bash
 
-while [ ! -f /tmp/vsftpd.conf ]; do
+while [ ! -f /etc/vsftpd.conf ]; do
     echo "Waiting for vsftpd.conf..."
     sleep 1
 done
@@ -39,4 +39,4 @@ touch /var/log/vsftpd/vsftpd.log
 chmod 644 /var/log/vsftpd/vsftpd.log
 
 echo "Starting vsftpd in foreground mode..."
-exec vsftpd -F
+exec vsftpd /etc/vsftpd.conf

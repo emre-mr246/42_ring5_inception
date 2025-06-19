@@ -3,10 +3,12 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INCEPTION_ROOT="$(dirname "$SCRIPT_DIR")"
 SSL_DIR="$INCEPTION_ROOT/srcs/certificates/nginx"
+FTP_CERT_DIR="$INCEPTION_ROOT/srcs/certificates/ftp"
 
 DOMAIN="emgul.42.fr"
 
 mkdir -p "$SSL_DIR"
+mkdir -p "$FTP_CERT_DIR"
 
 if [ ! -f "$SSL_DIR/dhparam.pem" ]; then
     openssl dhparam -out "$SSL_DIR/dhparam.pem" 2048
@@ -45,3 +47,18 @@ chmod 644 "$SSL_DIR/dhparam.pem"
 chmod 644 "$SSL_DIR/$DOMAIN.fullchain.pem"
 
 echo "SSL sertifikaları başarıyla oluşturuldu: $DOMAIN"
+
+if [ ! -f "$FTP_CERT_DIR/vsftpd.key" ]; then
+    echo "Generating FTPS certificate..."
+    openssl genrsa -out "$FTP_CERT_DIR/vsftpd.key" 2048
+    openssl req -new -sha256 \
+        -key "$FTP_CERT_DIR/vsftpd.key" \
+        -out "$FTP_CERT_DIR/vsftpd.csr" \
+        -subj "/CN=$DOMAIN/O=Inception/C=TR"
+    openssl x509 -req -in "$FTP_CERT_DIR/vsftpd.csr" -days 1825 -sha256 \
+        -CA "$SSL_DIR/ca-cert.pem" -CAkey "$SSL_DIR/ca-key.pem" -CAcreateserial \
+        -out "$FTP_CERT_DIR/vsftpd.crt"
+    cat "$FTP_CERT_DIR/vsftpd.key" "$FTP_CERT_DIR/vsftpd.crt" > "$FTP_CERT_DIR/vsftpd.pem"
+fi
+
+chmod 600 "$FTP_CERT_DIR/vsftpd.key" "$FTP_CERT_DIR/vsftpd.pem"

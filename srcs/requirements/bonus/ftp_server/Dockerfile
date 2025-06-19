@@ -7,6 +7,7 @@ RUN apt-get update && \
         passwd \
         netcat-openbsd \
         ca-certificates \
+        openssl \
         && rm -rf /var/lib/apt/lists/*
 
 COPY conf/vsftpd.conf /etc/vsftpd.conf
