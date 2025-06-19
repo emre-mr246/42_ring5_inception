@@ -13,6 +13,27 @@ else
     exit 1
 fi
 
+echo "Setting up SSL certificates from Docker secrets..."
+mkdir -p /etc/vsftpd/ssl
+
+if [ -f "/run/secrets/ftp_ssl_cert" ]; then
+    cp /run/secrets/ftp_ssl_cert /etc/vsftpd/ssl/vsftpd.pem
+    chmod 600 /etc/vsftpd/ssl/vsftpd.pem
+    echo "FTP SSL certificate copied from secret"
+else
+    echo "ERROR: ftp_ssl_cert secret not found!"
+    exit 1
+fi
+
+if [ -f "/run/secrets/ftp_ssl_key" ]; then
+    cp /run/secrets/ftp_ssl_key /etc/vsftpd/ssl/vsftpd.key
+    chmod 600 /etc/vsftpd/ssl/vsftpd.key
+    echo "FTP SSL private key copied from secret"
+else
+    echo "ERROR: ftp_ssl_key secret not found!"
+    exit 1
+fi
+
 if ! id -u ftpuser >/dev/null 2>&1; then
     echo "Creating ftpuser..."
     useradd -M -d /var/www/html ftpuser

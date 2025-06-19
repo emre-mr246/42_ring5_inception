@@ -114,6 +114,8 @@ clear_secrets:
 	@docker secret rm mysql_password mysql_root_password 2>/dev/null || true
 	@docker secret rm wordpress_db_password 2>/dev/null || true
 	@docker secret rm redis_password ftp_password  2>/dev/null || true
+	@docker secret rm nginx_ssl_cert nginx_ssl_key nginx_ssl_dhparam nginx_ssl_fullchain 2>/dev/null || true
+	@docker secret rm ftp_ssl_cert ftp_ssl_key 2>/dev/null || true
 
 clear_data:
 	@echo "Clearing data directories..."
