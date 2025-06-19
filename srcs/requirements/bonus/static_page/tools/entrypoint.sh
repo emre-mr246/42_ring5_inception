@@ -1,15 +1,24 @@
 #!/bin/sh
 
-TARGET_DIR="/var/www/html"
-mkdir -p ${TARGET_DIR}
+echo "Starting Static Page HTTP Server..."
 
-echo "Copying static files from /app to ${TARGET_DIR}"
-cp -R /app/* ${TARGET_DIR}/
+if [ ! -f "index.html" ]; then
+    echo "Warning: index.html not found in current directory"
+    echo "Current directory: $(pwd)"
+    echo "Contents:"
+    ls -la
+fi
 
-echo "Contents of ${TARGET_DIR}:"
-ls -l ${TARGET_DIR}
+echo "Serving static files from: $(pwd)"
+echo "Contents of web directory:"
+ls -la
 
-echo "Static files copied. Nginx will serve them from the volume."
-echo "This container will now sleep. Press Ctrl+C to exit."
+echo "Static Page HTTP Server starting on port 8000..."
 
-tail -f /dev/null
+if [ -d "/var/www/html" ] && [ "$(pwd)" != "/var/www/html" ]; then
+    echo "Copying files to volume mount..."
+    cp -R ./* /var/www/html/ 2>/dev/null || true
+    cd /var/www/html
+fi
+
+exec python3 -m http.server 8000 --bind 0.0.0.0

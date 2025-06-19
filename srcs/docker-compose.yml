@@ -8,8 +8,7 @@ services:
       restart_policy:
         condition: on-failure
     volumes:
-      - wordpress_data:/var/www/html:ro
-      - static_page_data:/var/www/static_page:ro
+      - wordpress_data:/var/www/html:rom
     networks:
       - inception_network
     secrets:
@@ -150,7 +149,7 @@ services:
     networks:
       - inception_network
     healthcheck:
-      test: ["CMD-SHELL", "test -f /var/www/html/index.html"]
+      test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000\")' || exit 1"]
       interval: 10s
       timeout: 5s
       start_period: 15s
