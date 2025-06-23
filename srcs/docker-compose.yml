@@ -38,6 +38,12 @@ services:
       - mysql_root_password
     env_file:
       - ./env/.env_mariadb
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
 
   adminer:
     image: adminer-42
@@ -93,6 +99,12 @@ services:
       - inception_network
     secrets:
       - redis_password
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping"]
+      interval: 5s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
 
   ftp-server:
     image: ftp-server-42
@@ -122,6 +134,9 @@ services:
     env_file:
       - ./env/.env_log_collector
       - ./env/.env_splunk_forwarder
+    secrets:
+      - splunk_forwarder_pass
+      - splunk_server_ip
     tty: true
     deploy:
       replicas: 1
@@ -169,6 +184,10 @@ secrets:
   ftp_ssl_cert:
     external: true
   ftp_ssl_key:
+    external: true
+  splunk_forwarder_pass:
+    external: true
+  splunk_server_ip:
     external: true
 
 volumes:

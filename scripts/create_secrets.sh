@@ -22,13 +22,16 @@ else
     WORDPRESS_DB_PASSWORD="$MYSQL_PASSWORD"
     REDIS_PASSWORD=$(generate_password)
     FTP_PASSWORD=$(generate_password)
-
+    SPLUNK_FORWARDER_PASS=$(generate_password)
+    SPLUNK_SERVER_IP=$(cat srcs/env/.env_splunk_forwarder | grep SPLUNK_SERVER | cut -d'=' -f2)
     {
         echo "MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD"
         echo "MYSQL_PASSWORD=$MYSQL_PASSWORD"
         echo "WORDPRESS_DB_PASSWORD=$WORDPRESS_DB_PASSWORD"
         echo "REDIS_PASSWORD=$REDIS_PASSWORD"
         echo "FTP_PASSWORD=$FTP_PASSWORD"
+        echo "SPLUNK_FORWARDER_PASS=$SPLUNK_FORWARDER_PASS"
+        echo "SPLUNK_SERVER_IP=$SPLUNK_SERVER_IP"
     } > "$PASSWORDS_FILE"
     chmod 600 "$PASSWORDS_FILE"
 fi
@@ -45,6 +48,8 @@ echo "$MYSQL_PASSWORD" | docker secret create mysql_password - || { echo "Failed
 echo "$MYSQL_PASSWORD" | docker secret create wordpress_db_password - || { echo "Failed to create wordpress_db_password"; exit 1; }
 echo "$REDIS_PASSWORD" | docker secret create redis_password - || { echo "Failed to create redis_password"; exit 1; }
 echo "$FTP_PASSWORD" | docker secret create ftp_password - || { echo "Failed to create ftp_password"; exit 1; }
+echo "$SPLUNK_FORWARDER_PASS" | docker secret create splunk_forwarder_pass - || { echo "Failed to create splunk_forwarder_pass"; exit 1; }
+echo "$SPLUNK_SERVER_IP" | docker secret create splunk_server_ip - || { echo "Failed to create splunk_server_ip"; exit 1; }
 
 echo "Creating nginx SSL secrets..."
 if [ -f "$SSL_DIR/emgul.42.fr.crt" ]; then

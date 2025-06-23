@@ -21,14 +21,28 @@ USERNAME = $SPLUNK_USER
 PASSWORD = $SPLUNK_PASS
 EOF
 
+echo "Configuring SSL certificate validation..."
+cat > "/opt/splunkforwarder/etc/system/local/server.conf" <<EOF
+[sslConfig]
+enableSplunkdSSL = true
+sslVerifyServerCert = true
+
+[httpServer]
+disableDefaultPort = false
+EOF
+
+echo "Creating secure splunk-launch.conf..."
+cat > "/opt/splunkforwarder/etc/splunk-launch.conf" <<EOF
+SPLUNK_HOME=/opt/splunkforwarder
+SPLUNK_SERVER_NAME=Splunkd
+SPLUNK_WEB_NAME=splunkweb
+PYTHONHTTPSVERIFY=1
+EOF
+
 cd /opt/splunkforwarder/bin
 
 echo "Starting Splunk Universal Forwarder..."
 ./splunk start --accept-license --answer-yes --no-prompt
-
-echo "Adding forward-server to Splunk Universal Forwarder..."
-./splunk add forward-server "$SPLUNK_SERVER" -auth "$SPLUNK_USER:$SPLUNK_PASS"
-./splunk add monitor "$LOG_PATH" -index "$SPLUNK_INDEX" -auth "$SPLUNK_USER:$SPLUNK_PASS"
 
 tee "/opt/splunkforwarder/etc/system/local/inputs.conf" > /dev/null <<EOF
 [monitor://$LOG_PATH]
