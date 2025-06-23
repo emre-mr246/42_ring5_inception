@@ -55,7 +55,6 @@ until nc -z wordpress 9000; do
   echo "Still waiting for WordPress PHP-FPM..."
   sleep 5
 done
-
 echo "WordPress PHP-FPM is ready!"
 
 echo "Checking SSL certificates..."
@@ -64,6 +63,13 @@ if [ ! -f "/etc/nginx/ssl/emgul.42.fr.crt" ]; then
     ls -la /etc/nginx/ssl/ || echo "SSL directory not found"
     exit 1
 fi
+
+echo "Testing static page..."
+until nc -z static-page 8000; do
+    echo "Still waiting for static page..."
+    sleep 5
+done
+echo "Static page is ready!"
 
 echo "Testing Nginx configuration as root..."
 if ! nginx -t; then

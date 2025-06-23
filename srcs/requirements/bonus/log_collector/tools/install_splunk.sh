@@ -1,10 +1,10 @@
 #!/bin/bash
 
-SPLUNK_USER="emgul"
-SPLUNK_PASS="domatesvekedi123"
-SPLUNK_INDEX="${SPLUNK_INDEX:-main}"
-LOG_PATH="${LOG_PATH:-/mnt/log_backups/service_logs}"
-SPLUNK_SERVER="${SPLUNK_SERVER:-127.0.0.1:9997}"
+SPLUNK_USER="${SPLUNK_USER}"
+SPLUNK_PASS="${SPLUNK_PASS}"
+SPLUNK_INDEX="${SPLUNK_INDEX}"
+LOG_PATH="${LOG_PATH}"
+SPLUNK_SERVER="${SPLUNK_SERVER}"
 
 echo "Installing Splunk Universal Forwarder..."
 tar -xzf /tmp/splunkforwarder.tgz -C /opt

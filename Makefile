@@ -5,14 +5,8 @@ REDIS_DIR		= $(DATA_DIR)/redis
 STATIC_PAGE_DIR	= $(DATA_DIR)/static_page
 LOG_DIR			= $(DATA_DIR)/logs
 
-MAKEFLAGS		= --no-print-directory
-RM				= rm -rf
-MKDIR			= mkdir -p
-
-export DOCKER_BUILDKIT=1
-
 BUILD_PATHS = \
-	BUILDKIT=0 docker build -t mariadb-42 ./srcs/requirements/mariadb && \
+	docker build -t mariadb-42 ./srcs/requirements/mariadb && \
 	docker build -t nginx-42 ./srcs/requirements/nginx && \
 	docker build -t wordpress-42 ./srcs/requirements/wordpress && \
 	docker build -t ftp-server-42 ./srcs/requirements/bonus/ftp_server && \
@@ -28,13 +22,14 @@ SWARM_ARGS		= --advertise-addr 127.0.0.1
 all: build
 
 build: init_swarm create_network generate_certs create_secrets build_images create_volumes
-	@echo "Deploying stack to Docker Swarm..."
+	@echo "Setting vm.overcommit_memory to 1..."
 	@sudo sysctl -w vm.overcommit_memory=1
+	@echo "Deploying stack to Docker Swarm..."
 	@docker stack deploy -c $(DOCKER_COMPOSE_FILE) $(STACK_NAME)
-	@sleep 10 && make $(MAKEFLAGS) status
+	@sleep 10 && make status
 
 init_swarm:
-	@if ! docker info --format '{{.Swarm.ControlAvailable}}' | grep -q true; then \
+	@if ! docker info --format '{{.Swarm.ControlAvailable}}' | grep --quiet true; then \
 		echo "Initializing Docker Swarm..."; \
 		docker swarm init $(SWARM_ARGS); \
 	else \
@@ -43,12 +38,11 @@ init_swarm:
 
 create_directories:
 	@echo "Creating data directories..."
-	@$(MKDIR) $(MYSQL_DIR) $(WP_DIR) $(REDIS_DIR) $(STATIC_PAGE_DIR) $(LOG_DIR)
+	@mkdir -p $(MYSQL_DIR) $(WP_DIR) $(REDIS_DIR) $(STATIC_PAGE_DIR) $(LOG_DIR)
 	@echo "Data directories created successfully."
 
 create_network:
-	@docker network inspect inception_network >/dev/null 2>&1 || \
-	docker network create --driver=overlay inception_network
+	@docker network create --driver=overlay inception_network >/dev/null 2>&1
 
 generate_certs:
 	@echo "Generating SSL certificates..."
@@ -80,11 +74,9 @@ create_volumes: fix_perms
 
 fix_perms: create_directories
 	@echo "Fixing directory permissions..."
-	@sudo chown -R 999:999 $(MYSQL_DIR)
-	@sudo chown -R 999:999 $(REDIS_DIR)
-	@sudo chown -R 33:33 $(WP_DIR)		
-	@sudo chown -R 1000:1000 $(LOG_DIR)
-	@sudo chown -R 1000:1000 $(STATIC_PAGE_DIR)
+	@sudo chown -R 999:999 $(MYSQL_DIR) $(REDIS_DIR)
+	@sudo chown -R 33:33 $(WP_DIR)
+	@sudo chown -R 1000:1000 $(LOG_DIR) $(STATIC_PAGE_DIR)
 	@echo "Permissions fixed successfully."
 
 down: clean
@@ -95,7 +87,7 @@ status:
 
 exec:
 	@read -p "Container name: " cname; \
-	cid=$$(docker ps -q --filter "name=$$cname"); \
+	cid=$$(docker ps --quiet --filter "name=$$cname"); \
 	if [ -z "$$cid" ]; then \
 		echo "Container not found!"; \
 	else \
@@ -118,7 +110,7 @@ clear_secrets:
 
 clear_data:
 	@echo "Clearing data directories..."
-	@sudo $(RM) -rf $(MYSQL_DIR) $(WP_DIR) $(REDIS_DIR) $(STATIC_PAGE_DIR) $(LOG_DIR) .passwords
+	@sudo rm -rf $(MYSQL_DIR) $(WP_DIR) $(REDIS_DIR) $(STATIC_PAGE_DIR) $(LOG_DIR) .passwords
 	@echo "Data directories cleared successfully."
 
 fclean: clean clear_data clear_secrets

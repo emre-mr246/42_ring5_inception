@@ -46,7 +46,7 @@ chmod 644 "$SSL_DIR/$DOMAIN.crt"
 chmod 644 "$SSL_DIR/dhparam.pem"
 chmod 644 "$SSL_DIR/$DOMAIN.fullchain.pem"
 
-echo "SSL sertifikaları başarıyla oluşturuldu: $DOMAIN"
+echo "SSL certificates generated successfully: $DOMAIN"
 
 if [ ! -f "$FTP_CERT_DIR/vsftpd.key" ]; then
     echo "Generating FTPS certificate..."
