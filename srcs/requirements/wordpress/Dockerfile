@@ -5,6 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get -y install --no-install-recommends \
     wget \
     ca-certificates \
+    openssl \
     php8.2-fpm \
     php8.2-mysql \
     php8.2-gd \
@@ -12,6 +13,7 @@ RUN apt-get update && apt-get -y install --no-install-recommends \
     php8.2-mbstring \
     php8.2-xml \
     php8.2-zip \
+    php8.2-ftp \
     php-redis \
     netcat-openbsd \
     mariadb-client \

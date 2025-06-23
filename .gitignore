@@ -9,3 +9,7 @@ srcs/certificates/
 
 # Passwords
 .passwords
+
+# Splunk
+.env_splunk_forwarder
+splunkforwarder.tgz

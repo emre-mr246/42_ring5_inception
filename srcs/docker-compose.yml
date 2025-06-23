@@ -70,6 +70,8 @@ services:
       - inception_network
     secrets:
       - wordpress_db_password
+      - redis_password
+      - ftp_password
     env_file:
       - ./env/.env_wordpress
     healthcheck:
@@ -91,12 +93,6 @@ services:
       - inception_network
     secrets:
       - redis_password
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 10s
-      start_period: 40s
-      retries: 3
 
   ftp-server:
     image: ftp-server-42
@@ -125,18 +121,14 @@ services:
       - logs_data:/mnt/log_backups
     env_file:
       - ./env/.env_log_collector
+      - ./env/.env_splunk_forwarder
+    tty: true
     deploy:
       replicas: 1
       placement:
         constraints: [node.role == manager]
       restart_policy:
         condition: on-failure
-    healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'log-collector' > /dev/null || exit 1"]
-      interval: 30s
-      timeout: 10s
-      start_period: 60s
-      retries: 3
 
   static-page:
     image: static-page-42

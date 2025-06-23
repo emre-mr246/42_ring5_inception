@@ -14,12 +14,16 @@ until nc -z redis 6379; do
   sleep 2
 done
 
+until nc -z ftp-server 21; do
+  echo "Waiting for FTP server to be ready..."
+  sleep 2
+done
+
 umask 027
 
 WORDPRESS_ARCHIVE="wordpress-6.8.1.tar.gz"
 WORDPRESS_DIR="wordpress"
 CONFIG_FILE="wp-config.php"
-SAMPLE_CONFIG="wp-config-sample.php"
 
 log()    { echo "[INFO] $*"; }
 error()  { echo "[ERROR] $*" >&2; }
@@ -53,12 +57,73 @@ else
     mv "$WORDPRESS_DIR"/* ./
     chown -R www-data:www-data .
 
-    cp "$SAMPLE_CONFIG" "$CONFIG_FILE"
+    log "Creating WordPress configuration..."
+    cat > "$CONFIG_FILE" << EOF
+<?php
 
-    sed -i "s/database_name_here/${WORDPRESS_DB_NAME}/" "$CONFIG_FILE"
-    sed -i "s/username_here/${WORDPRESS_DB_USER}/" "$CONFIG_FILE"
-    sed -i "s/password_here/${WORDPRESS_DB_PASSWORD}/" "$CONFIG_FILE"
-    sed -i "s/localhost/${WORDPRESS_DB_HOST}/" "$CONFIG_FILE"
+define( 'DB_NAME', '${WORDPRESS_DB_NAME}' );
+define( 'DB_USER', '${WORDPRESS_DB_USER}' );
+define( 'DB_PASSWORD', '${WORDPRESS_DB_PASSWORD}' );
+define( 'DB_HOST', '${WORDPRESS_DB_HOST}' );
+define( 'DB_CHARSET', 'utf8mb4' );
+define( 'DB_COLLATE', '' );
+
+define( 'AUTH_KEY',         '$(openssl rand -base64 48)' );
+define( 'SECURE_AUTH_KEY',  '$(openssl rand -base64 48)' );
+define( 'LOGGED_IN_KEY',    '$(openssl rand -base64 48)' );
+define( 'NONCE_KEY',        '$(openssl rand -base64 48)' );
+define( 'AUTH_SALT',        '$(openssl rand -base64 48)' );
+define( 'SECURE_AUTH_SALT', '$(openssl rand -base64 48)' );
+define( 'LOGGED_IN_SALT',   '$(openssl rand -base64 48)' );
+define( 'NONCE_SALT',       '$(openssl rand -base64 48)' );
+
+\$table_prefix = 'wp_';
+
+define( 'WP_DEBUG', false );
+EOF
+
+    if [ -f /run/secrets/ftp_password ]; then
+        FTP_PASS="$(cat /run/secrets/ftp_password)"
+        log "Adding FTP configuration to WordPress..."
+        cat >> "$CONFIG_FILE" << EOF
+
+define( 'FTP_HOST', 'ftp-server' );
+define( 'FTP_USER', 'ftpuser' );
+define( 'FTP_PASS', '${FTP_PASS}' );
+define( 'FTP_SSL', true );
+define( 'FTP_TIMEOUT', 120 );
+EOF
+        log "FTP configuration added to WordPress."
+    else
+        log "Warning: FTP password secret not found, skipping FTP configuration."
+    fi
+
+    if [ -f /run/secrets/redis_password ]; then
+        REDIS_PASS="$(cat /run/secrets/redis_password)"
+        log "Adding Redis configuration to WordPress..."
+        cat >> "$CONFIG_FILE" << EOF
+
+define( 'WP_REDIS_HOST', 'redis' );
+define( 'WP_REDIS_PORT', 6379 );
+define( 'WP_REDIS_PASSWORD', '${REDIS_PASS}' );
+define( 'WP_REDIS_DATABASE', 0 );
+define( 'WP_REDIS_TIMEOUT', 1 );
+define( 'WP_REDIS_READ_TIMEOUT', 1 );
+define( 'WP_CACHE', true );
+EOF
+        log "Redis configuration added to WordPress."
+    else
+        log "Warning: Redis password secret not found, skipping Redis configuration."
+    fi
+
+    cat >> "$CONFIG_FILE" << EOF
+
+if ( ! defined( 'ABSPATH' ) ) {
+    define( 'ABSPATH', __DIR__ . '/' );
+}
+
+require_once ABSPATH . 'wp-settings.php';
+EOF
 
     log "WordPress configuration complete."
 fi
@@ -105,14 +170,9 @@ while :; do
                 exit 1
             }
 
-        if [ "${ENABLE_REDIS:-0}" = "1" ]; then
-            log "Configuring Redis cache..."
-            run_wp config set WP_REDIS_HOST redis --allow-root
-            run_wp config set WP_REDIS_PORT 6379 --raw --allow-root
-            run_wp config set WP_CACHE_KEY_SALT "${DOMAIN_NAME}" --allow-root
-            run_wp config set WP_REDIS_CLIENT phpredis --allow-root
+        log "Configuring Redis cache..."
+        if [ -f /run/secrets/redis_password ]; then
             run_wp plugin install redis-cache --activate --allow-root
-            run_wp plugin update --all --allow-root
             run_wp redis enable --allow-root
             log "Redis cache enabled."
         fi

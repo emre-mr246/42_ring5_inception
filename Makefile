@@ -1,32 +1,35 @@
-DATA_DIR    = $(HOME)/data
-MYSQL_DIR   = $(DATA_DIR)/mysql
-WP_DIR      = $(DATA_DIR)/wordpress
-REDIS_DIR   = $(DATA_DIR)/redis
-STATIC_PAGE_DIR = $(DATA_DIR)/static_page
-LOG_DIR     = $(DATA_DIR)/logs
+DATA_DIR		= $(HOME)/data
+MYSQL_DIR		= $(DATA_DIR)/mysql
+WP_DIR			= $(DATA_DIR)/wordpress
+REDIS_DIR		= $(DATA_DIR)/redis
+STATIC_PAGE_DIR	= $(DATA_DIR)/static_page
+LOG_DIR			= $(DATA_DIR)/logs
 
-MAKEFLAGS   = --no-print-directory
-RM          = rm -rf
-MKDIR       = mkdir -p
+MAKEFLAGS		= --no-print-directory
+RM				= rm -rf
+MKDIR			= mkdir -p
+
+export DOCKER_BUILDKIT=1
 
 BUILD_PATHS = \
-    DOCKER_BUILDKIT=0 docker build -t mariadb-42 ./srcs/requirements/mariadb && \
-    DOCKER_BUILDKIT=0 docker build -t nginx-42 ./srcs/requirements/nginx && \
-    DOCKER_BUILDKIT=0 docker build -t wordpress-42 ./srcs/requirements/wordpress && \
-    DOCKER_BUILDKIT=0 docker build -t ftp-server-42 ./srcs/requirements/bonus/ftp_server && \
-    DOCKER_BUILDKIT=0 docker build -t redis-42 ./srcs/requirements/bonus/redis && \
-    DOCKER_BUILDKIT=0 docker build -t adminer-42 ./srcs/requirements/bonus/adminer && \
-    DOCKER_BUILDKIT=0 docker build -t log-collector-42 ./srcs/requirements/bonus/log_collector && \
-	DOCKER_BUILDKIT=0 docker build -t static-page-42 ./srcs/requirements/bonus/static_page
+	BUILDKIT=0 docker build -t mariadb-42 ./srcs/requirements/mariadb && \
+	docker build -t nginx-42 ./srcs/requirements/nginx && \
+	docker build -t wordpress-42 ./srcs/requirements/wordpress && \
+	docker build -t ftp-server-42 ./srcs/requirements/bonus/ftp_server && \
+	docker build -t redis-42 ./srcs/requirements/bonus/redis && \
+	docker build -t adminer-42 ./srcs/requirements/bonus/adminer && \
+	docker build -t log-collector-42 ./srcs/requirements/bonus/log_collector && \
+	docker build -t static-page-42 ./srcs/requirements/bonus/static_page
 
-DOCKER_COMPOSE_FILE = ./srcs/docker-compose.yml
-STACK_NAME  = inception
-SWARM_ARGS = --advertise-addr 127.0.0.1
+DOCKER_COMPOSE_FILE	= ./srcs/docker-compose.yml
+STACK_NAME		= inception
+SWARM_ARGS		= --advertise-addr 127.0.0.1
 
 all: build
 
 build: init_swarm create_network generate_certs create_secrets build_images create_volumes
 	@echo "Deploying stack to Docker Swarm..."
+	@sudo sysctl -w vm.overcommit_memory=1
 	@docker stack deploy -c $(DOCKER_COMPOSE_FILE) $(STACK_NAME)
 	@sleep 10 && make $(MAKEFLAGS) status
 
@@ -40,11 +43,7 @@ init_swarm:
 
 create_directories:
 	@echo "Creating data directories..."
-	@$(MKDIR) $(MYSQL_DIR)
-	@$(MKDIR) $(WP_DIR)
-	@$(MKDIR) $(REDIS_DIR)
-	@$(MKDIR) $(STATIC_PAGE_DIR)
-	@${MKDIR} $(LOG_DIR)
+	@$(MKDIR) $(MYSQL_DIR) $(WP_DIR) $(REDIS_DIR) $(STATIC_PAGE_DIR) $(LOG_DIR)
 	@echo "Data directories created successfully."
 
 create_network:
@@ -80,13 +79,13 @@ create_volumes: fix_perms
 	@echo "Volumes created successfully."
 
 fix_perms: create_directories
+	@echo "Fixing directory permissions..."
 	@sudo chown -R 999:999 $(MYSQL_DIR)
 	@sudo chown -R 999:999 $(REDIS_DIR)
-	@sudo chown -R 33:33 $(WP_DIR)
-	@sudo chown -R 1000:1000 $(DATA_DIR)/logs
-	@sudo chown -R 1000:1000 $(DATA_DIR)/static_page
+	@sudo chown -R 33:33 $(WP_DIR)		
+	@sudo chown -R 1000:1000 $(LOG_DIR)
+	@sudo chown -R 1000:1000 $(STATIC_PAGE_DIR)
 	@echo "Permissions fixed successfully."
-
 
 down: clean
 
@@ -105,7 +104,7 @@ exec:
 
 clean:
 	@echo "Cleaning up containers and volumes..."
-	@docker stack rm $(STACK_NAME)
+	@docker stack rm $(STACK_NAME) || true
 	@docker network rm inception_network 2>/dev/null || true
 	@docker swarm leave --force 2>/dev/null || true
 
@@ -119,12 +118,7 @@ clear_secrets:
 
 clear_data:
 	@echo "Clearing data directories..."
-	@sudo $(RM) $(MYSQL_DIR)
-	@sudo $(RM) $(WP_DIR)
-	@sudo $(RM) $(REDIS_DIR)
-	@sudo $(RM) $(STATIC_PAGE_DIR)
-	@sudo $(RM) $(LOG_DIR)
-	@sudo $(RM) .passwords
+	@sudo $(RM) -rf $(MYSQL_DIR) $(WP_DIR) $(REDIS_DIR) $(STATIC_PAGE_DIR) $(LOG_DIR) .passwords
 	@echo "Data directories cleared successfully."
 
 fclean: clean clear_data clear_secrets

@@ -1,19 +1,22 @@
 FROM debian:12-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    redis-server curl procps \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
-    && echo "vm.overcommit_memory=1" >> /etc/sysctl.conf \
-    && mkdir -p /data \
-    && chown redis:redis /data \
-    && chmod 755 /data
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    redis-server \
+    gosu \
+    && rm -rf /var/lib/apt/lists/* && \
+    mkdir -p /etc/redis /data && \
+    chown -R redis:redis /etc/redis /data && \
+    chmod 755 /etc/redis
 
-COPY ./tools/redis.sh /tmp/redis.sh
-RUN chmod +x /tmp/redis.sh
+COPY --chown=redis:redis conf/redis.conf /etc/redis/redis.conf
+RUN chmod 644 /etc/redis/redis.conf
+
+COPY tools/entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+VOLUME ["/data"]
 
 EXPOSE 6379
 
-USER redis
-
-CMD ["sh", "/tmp/redis.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

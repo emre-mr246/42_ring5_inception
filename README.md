@@ -31,7 +31,7 @@ This project includes the following services:
 *   **Adminer:** Database management tool.
 *   **Redis:** In-memory data structure store, used as a cache.
 *   **FTP Server:** For file transfer.
-*   **Log Collector:** Collects logs from other services.
+*   **Log Collector:** Collects logs from other services and sends them to the Splunk Server.
 *   **Static Page:** A simple static website.
 
 ## Usage ⚙️
@@ -41,6 +41,8 @@ This project includes the following services:
 *   Docker
 *   Docker Compose
 *   Make
+*   srcs/requirements/bonus/log_collector/tools/splunkforwarder.tgz
+*   srcs/env/.env_splunk_forwarder
 
 ### Build and Run
 
