@@ -19,6 +19,24 @@ define( 'NONCE_SALT',       '${NONCE_SALT}' );
 $table_prefix = 'wp_';
 
 define( 'WP_DEBUG', false );
+define( 'WP_DEBUG_LOG', false );
+define( 'WP_DEBUG_DISPLAY', false );
+
+define( 'WP_HOME', 'https://${DOMAIN_NAME}' );
+define( 'WP_SITEURL', 'https://${DOMAIN_NAME}' );
+
+define( 'FORCE_SSL_ADMIN', true );
+
+define( 'FTP_HOST', 'ftp-server' );
+define( 'FTP_USER', 'ftpuser' );
+define( 'FTP_PASS', '${FTP_PASS}' );
+define( 'FTP_SSL', false );
+
+define( 'WP_REDIS_HOST', 'redis' );
+define( 'WP_REDIS_PORT', 6379 );
+define( 'WP_REDIS_PASSWORD', '${REDIS_PASS}' );
+define( 'WP_REDIS_DATABASE', 0 );
+define( 'WP_CACHE', true );
 
 if ( ! defined( 'ABSPATH' ) ) {
     define( 'ABSPATH', __DIR__ . '/' );

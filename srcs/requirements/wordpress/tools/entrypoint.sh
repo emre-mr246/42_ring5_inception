@@ -2,22 +2,25 @@
 
 set -eu
 
-export WORDPRESS_DB_PASSWORD=$(cat /run/secrets/wordpress_db_password)
+WORDPRESS_DB_PASSWORD=$(cat /run/secrets/wordpress_db_password)
 
 until mysql -h"$WORDPRESS_DB_HOST" -u"$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" -e "SELECT 1;" 2>/dev/null; do
   echo "Waiting for MariaDB to be ready..."
   sleep 2
 done
+echo "[OK] MariaDB is ready"
 
 until nc -z redis 6379; do
   echo "Waiting for Redis to be ready..."
   sleep 2
 done
+echo "[OK] Redis is ready"
 
 until nc -z ftp-server 21; do
   echo "Waiting for FTP server to be ready..."
   sleep 2
 done
+echo "[OK] FTP server is ready"
 
 umask 027
 
@@ -25,9 +28,8 @@ WORDPRESS_ARCHIVE="wordpress-6.8.1.tar.gz"
 WORDPRESS_DIR="wordpress"
 CONFIG_FILE="wp-config.php"
 
-log()    { echo "[INFO] $*"; }
-error()  { echo "[ERROR] $*" >&2; }
-cleanup() { rm -rf "$WORDPRESS_ARCHIVE" "$WORDPRESS_DIR"; [ -n "${TMP_ARGS:-}" ] && rm -f "$TMP_ARGS"; }
+log() { echo "[INFO] $*"; }
+cleanup() { rm -rf "$WORDPRESS_ARCHIVE" "$WORDPRESS_DIR"; }
 trap cleanup EXIT INT TERM
 
 run_wp() {
@@ -40,16 +42,19 @@ run_wp() {
     return $status
 }
 
-export WP_CLI_CACHE_DIR="/tmp/wp-cli-cache"
+WP_CLI_CACHE_DIR="/tmp/wp-cli-cache"
 mkdir -p "$WP_CLI_CACHE_DIR"
 chown www-data:www-data "$WP_CLI_CACHE_DIR"
 
 chown -R www-data:www-data /var/www/html /run/php
 
-if [ -f "./$CONFIG_FILE" ]; then
-    log "WordPress already exists. Skipping download."
+if [ -f "./$CONFIG_FILE" ] && [ -f "./wp-settings.php" ] && grep -q "wp-settings.php" "./$CONFIG_FILE"; then
+    log "WordPress already exists and is properly configured. Skipping download."
 else
-    log "Downloading and configuring WordPress..."
+    log "WordPress not found or improperly configured. Installing..."
+
+    rm -f "./$CONFIG_FILE"
+    rm -rf ./wp-*
 
     wget -q "https://wordpress.org/${WORDPRESS_ARCHIVE}"
     tar -xzf "$WORDPRESS_ARCHIVE"
@@ -57,80 +62,42 @@ else
     mv "$WORDPRESS_DIR"/* ./
     chown -R www-data:www-data .
 
+    FTP_PASS="$(cat /run/secrets/ftp_password)"
+    REDIS_PASS="$(cat /run/secrets/redis_password)"
+
     log "Creating WordPress configuration..."
-    cat > "$CONFIG_FILE" << EOF
-<?php
+    
+    AUTH_KEY="$(openssl rand -base64 48)"
+    SECURE_AUTH_KEY="$(openssl rand -base64 48)"
+    LOGGED_IN_KEY="$(openssl rand -base64 48)"
+    NONCE_KEY="$(openssl rand -base64 48)"
+    AUTH_SALT="$(openssl rand -base64 48)"
+    SECURE_AUTH_SALT="$(openssl rand -base64 48)"
+    LOGGED_IN_SALT="$(openssl rand -base64 48)"
+    NONCE_SALT="$(openssl rand -base64 48)"
 
-define( 'DB_NAME', '${WORDPRESS_DB_NAME}' );
-define( 'DB_USER', '${WORDPRESS_DB_USER}' );
-define( 'DB_PASSWORD', '${WORDPRESS_DB_PASSWORD}' );
-define( 'DB_HOST', '${WORDPRESS_DB_HOST}' );
-define( 'DB_CHARSET', 'utf8mb4' );
-define( 'DB_COLLATE', '' );
-
-define( 'AUTH_KEY',         '$(openssl rand -base64 48)' );
-define( 'SECURE_AUTH_KEY',  '$(openssl rand -base64 48)' );
-define( 'LOGGED_IN_KEY',    '$(openssl rand -base64 48)' );
-define( 'NONCE_KEY',        '$(openssl rand -base64 48)' );
-define( 'AUTH_SALT',        '$(openssl rand -base64 48)' );
-define( 'SECURE_AUTH_SALT', '$(openssl rand -base64 48)' );
-define( 'LOGGED_IN_SALT',   '$(openssl rand -base64 48)' );
-define( 'NONCE_SALT',       '$(openssl rand -base64 48)' );
-
-\$table_prefix = 'wp_';
-
-define( 'WP_DEBUG', false );
-EOF
-
-    if [ -f /run/secrets/ftp_password ]; then
-        FTP_PASS="$(cat /run/secrets/ftp_password)"
-        log "Adding FTP configuration to WordPress..."
-        cat >> "$CONFIG_FILE" << EOF
-
-define( 'FTP_HOST', 'ftp-server' );
-define( 'FTP_USER', 'ftpuser' );
-define( 'FTP_PASS', '${FTP_PASS}' );
-define( 'FTP_SSL', true );
-define( 'FTP_TIMEOUT', 120 );
-EOF
-        log "FTP configuration added to WordPress."
-    else
-        log "Warning: FTP password secret not found, skipping FTP configuration."
-    fi
-
-    if [ -f /run/secrets/redis_password ]; then
-        REDIS_PASS="$(cat /run/secrets/redis_password)"
-        log "Adding Redis configuration to WordPress..."
-        cat >> "$CONFIG_FILE" << EOF
-
-define( 'WP_REDIS_HOST', 'redis' );
-define( 'WP_REDIS_PORT', 6379 );
-define( 'WP_REDIS_PASSWORD', '${REDIS_PASS}' );
-define( 'WP_REDIS_DATABASE', 0 );
-define( 'WP_REDIS_TIMEOUT', 1 );
-define( 'WP_REDIS_READ_TIMEOUT', 1 );
-define( 'WP_CACHE', true );
-EOF
-        log "Redis configuration added to WordPress."
-    else
-        log "Warning: Redis password secret not found, skipping Redis configuration."
-    fi
-
-    cat >> "$CONFIG_FILE" << EOF
-
-if ( ! defined( 'ABSPATH' ) ) {
-    define( 'ABSPATH', __DIR__ . '/' );
-}
-
-require_once ABSPATH . 'wp-settings.php';
-EOF
-
+    sed -e "s|\${WORDPRESS_DB_NAME}|${WORDPRESS_DB_NAME}|g" \
+        -e "s|\${WORDPRESS_DB_USER}|${WORDPRESS_DB_USER}|g" \
+        -e "s|\${WORDPRESS_DB_PASSWORD}|${WORDPRESS_DB_PASSWORD}|g" \
+        -e "s|\${WORDPRESS_DB_HOST}|${WORDPRESS_DB_HOST}|g" \
+        -e "s|\${DOMAIN_NAME}|${DOMAIN_NAME}|g" \
+        -e "s|\${AUTH_KEY}|${AUTH_KEY}|g" \
+        -e "s|\${SECURE_AUTH_KEY}|${SECURE_AUTH_KEY}|g" \
+        -e "s|\${LOGGED_IN_KEY}|${LOGGED_IN_KEY}|g" \
+        -e "s|\${NONCE_KEY}|${NONCE_KEY}|g" \
+        -e "s|\${AUTH_SALT}|${AUTH_SALT}|g" \
+        -e "s|\${SECURE_AUTH_SALT}|${SECURE_AUTH_SALT}|g" \
+        -e "s|\${LOGGED_IN_SALT}|${LOGGED_IN_SALT}|g" \
+        -e "s|\${NONCE_SALT}|${NONCE_SALT}|g" \
+        -e "s|\${FTP_PASS}|${FTP_PASS}|g" \
+        -e "s|\${REDIS_PASS}|${REDIS_PASS}|g" \
+        "/usr/local/share/wp-config.php" > "$CONFIG_FILE"
     log "WordPress configuration complete."
 fi
 
 chown -R www-data:www-data /var/www/html
 chmod -R 755 /var/www/html
-chmod 644 "$CONFIG_FILE" || true
+chmod 644 "$CONFIG_FILE"
 mkdir -p wp-content
 chown -R www-data:www-data wp-content
 chmod -R 775 wp-content
@@ -141,53 +108,30 @@ until mysql -h "$WORDPRESS_DB_HOST" -u "$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PAS
 done
 log "Database connection established."
 
-log "Checking if WordPress is installed..."
-MAX_INSTALL_ATTEMPTS=5
-INSTALL_ATTEMPT=1
-
-while :; do
-    if run_wp core is-installed; then
-        log "WordPress core already installed. Skipping installation."
-        break
-    fi
-
-    log "WordPress not installed (attempt $INSTALL_ATTEMPT), attempting installation..."
-    if run_wp core install \
+if run_wp core is-installed; then
+    log "WordPress core already installed. Skipping installation."
+else
+    log "WordPress not installed, attempting installation..."
+    run_wp core install \
         --url="${DOMAIN_NAME}" \
         --title="Inception - emgul" \
         --admin_user="${WORDPRESS_DB_USER}" \
         --admin_password="${WORDPRESS_DB_PASSWORD}" \
         --admin_email="admin@${DOMAIN_NAME}" \
-        --skip-email; then
+        --skip-email
 
-        log "WordPress installation successful."
-        run_wp post create \
-            --post_type=page \
-            --post_title="42" \
-            --post_content="Hello from 42 Istanbul!" \
-            --post_status=publish || {
-                error "Failed to create initial post."
-                exit 1
-            }
+    log "WordPress installation successful."
 
-        log "Configuring Redis cache..."
-        if [ -f /run/secrets/redis_password ]; then
-            run_wp plugin install redis-cache --activate --allow-root
-            run_wp redis enable --allow-root
-            log "Redis cache enabled."
-        fi
-        break
-    fi
+    log "Creating initial post..."
+    chmod +x /usr/local/bin/create_post.sh
+    /usr/local/bin/create_post.sh
 
-    error "WordPress installation failed (attempt $INSTALL_ATTEMPT). Retrying in 5 seconds..."
-    INSTALL_ATTEMPT=$((INSTALL_ATTEMPT + 1))
-    if [ $INSTALL_ATTEMPT -gt $MAX_INSTALL_ATTEMPTS ]; then
-        error "WordPress installation failed after $MAX_INSTALL_ATTEMPTS attempts. Exiting."
-        exit 1
-    fi
-    sleep 5
-done
+    log "Configuring Redis cache..."
+    run_wp plugin install redis-cache --activate
+    run_wp redis enable
+    log "Redis cache enabled."
+fi
 
 echo "[OK] WordPress is installed and configured."
 
-exec gosu www-data php-fpm8.2 -F
+exec gosu www-data php-fpm8.2 --nodaemonize

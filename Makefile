@@ -5,6 +5,8 @@ REDIS_DIR		= $(DATA_DIR)/redis
 STATIC_PAGE_DIR	= $(DATA_DIR)/static_page
 LOG_DIR			= $(DATA_DIR)/logs
 
+STACK_NAME		= inception
+
 BUILD_PATHS = \
 	docker build -t mariadb-42 ./srcs/requirements/mariadb && \
 	docker build -t nginx-42 ./srcs/requirements/nginx && \
@@ -15,30 +17,26 @@ BUILD_PATHS = \
 	docker build -t log-collector-42 ./srcs/requirements/bonus/log_collector && \
 	docker build -t static-page-42 ./srcs/requirements/bonus/static_page
 
-DOCKER_COMPOSE_FILE	= ./srcs/docker-compose.yml
-STACK_NAME		= inception
-SWARM_ARGS		= --advertise-addr 127.0.0.1
-
 all: build
 
 build: init_swarm create_network generate_certs create_secrets build_images create_volumes
 	@echo "Setting vm.overcommit_memory to 1..."
-	@sudo sysctl -w vm.overcommit_memory=1
+	@sudo sysctl --write vm.overcommit_memory=1
 	@echo "Deploying stack to Docker Swarm..."
-	@docker stack deploy -c $(DOCKER_COMPOSE_FILE) $(STACK_NAME)
-	@sleep 10 && make status
+	@docker stack deploy --compose-file ./srcs/docker-compose.yml $(STACK_NAME)
+	@sleep 10 && make --no-print-directory status
 
 init_swarm:
 	@if ! docker info --format '{{.Swarm.ControlAvailable}}' | grep --quiet true; then \
 		echo "Initializing Docker Swarm..."; \
-		docker swarm init $(SWARM_ARGS); \
+		docker swarm init --advertise-addr 127.0.0.1; \
 	else \
 		echo "Docker Swarm is already initialized."; \
 	fi
 
 create_directories:
 	@echo "Creating data directories..."
-	@mkdir -p $(MYSQL_DIR) $(WP_DIR) $(REDIS_DIR) $(STATIC_PAGE_DIR) $(LOG_DIR)
+	@mkdir --parents $(MYSQL_DIR) $(WP_DIR) $(REDIS_DIR) $(STATIC_PAGE_DIR) $(LOG_DIR)
 	@echo "Data directories created successfully."
 
 create_network:
@@ -115,10 +113,10 @@ clear_data:
 
 fclean: clean clear_data clear_secrets
 	@echo "Pruning Docker system..."
-	@docker system prune -a -f
-	@docker volume prune -f
-	@sudo rm -rf ${HOME}/data/*
+	@docker system prune --all --force
+	@docker volume prune --force
+	@sudo rm -rf $(HOME)/data/*
 
-restart: clean build
+re: clean build
 
-.PHONY: all build down status logs clean fclean restart exec create_directories create_network generate_certs build_images create_volumes fix_perms create_secrets init_swarm
+.PHONY: all build down status logs clean fclean re exec create_directories create_network generate_certs build_images create_volumes fix_perms create_secrets init_swarm

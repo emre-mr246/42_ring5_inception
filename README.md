@@ -1,7 +1,7 @@
 <div align="center">
   <img src="img/inception.png" alt="Logo" width="150" height="150">
   <h2>42 Inception Project</h2>
-    <a href= https://github.com/emre-mr246/42-evaluation><img src="https://img.shields.io/badge/score-101%20%2F%20100-success?style=for-the-badge"/></a>
+    <a href= https://github.com/emre-mr246/42-evaluation><img src="https://img.shields.io/badge/score-125%20%2F%20100-success?style=for-the-badge"/></a>
     <a href= https://github.com/emre-mr246/42-evaluation><img src="https://img.shields.io/badge/circle-5-magenta?style=for-the-badge"/></a>
     <a href= https://github.com/emre-mr246/42-evaluation><img src="https://img.shields.io/badge/42-Evaluation-red?style=for-the-badge"/></a>
     <a href= https://github.com/emre-mr246/42_ring5_inception><img src="https://img.shields.io/github/last-commit/emre-mr246/42_ring5_inception?style=for-the-badge"/></a>
