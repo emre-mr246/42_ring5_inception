@@ -29,17 +29,23 @@ WORDPRESS_DIR="wordpress"
 CONFIG_FILE="wp-config.php"
 
 log() { echo "[INFO] $*"; }
-cleanup() { rm -rf "$WORDPRESS_ARCHIVE" "$WORDPRESS_DIR"; }
+cleanup() { rm -rf "$WORDPRESS_ARCHIVE" "$WORDPRESS_DIR" /tmp/wp-args.* /tmp/wp-cli-cache; }
 trap cleanup EXIT INT TERM
 
 run_wp() {
     TMP_ARGS="$(mktemp /tmp/wp_args.XXXXXX)"
     printf '%s\0' "$@" > "$TMP_ARGS"
     chown www-data:www-data "$TMP_ARGS"
-    gosu www-data sh -c "cd /var/www/html && HTTP_HOST='${DOMAIN_NAME}' SERVER_NAME='${DOMAIN_NAME}' xargs -0 -a '$TMP_ARGS' -- wp"
-    local status=$?
-    rm -f "$TMP_ARGS"
-    return $status
+    
+    if gosu www-data sh -c "cd /var/www/html && HTTP_HOST='${DOMAIN_NAME}' SERVER_NAME='${DOMAIN_NAME}' xargs --null -a '$TMP_ARGS' -- wp"; then
+        rm -f "$TMP_ARGS"
+        return 0
+    else
+        local status=$?
+        rm -f "$TMP_ARGS"
+        log "WordPress command failed with exit code: $status"
+        return $status
+    fi
 }
 
 WP_CLI_CACHE_DIR="/tmp/wp-cli-cache"
@@ -56,7 +62,7 @@ else
     rm -f "./$CONFIG_FILE"
     rm -rf ./wp-*
 
-    wget -q "https://wordpress.org/${WORDPRESS_ARCHIVE}"
+    wget --quiet "https://wordpress.org/${WORDPRESS_ARCHIVE}"
     tar -xzf "$WORDPRESS_ARCHIVE"
     
     mv "$WORDPRESS_DIR"/* ./

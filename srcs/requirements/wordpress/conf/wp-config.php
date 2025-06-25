@@ -30,7 +30,7 @@ define( 'FORCE_SSL_ADMIN', true );
 define( 'FTP_HOST', 'ftp-server' );
 define( 'FTP_USER', 'ftpuser' );
 define( 'FTP_PASS', '${FTP_PASS}' );
-define( 'FTP_SSL', false );
+define( 'FTP_SSL', true );
 
 define( 'WP_REDIS_HOST', 'redis' );
 define( 'WP_REDIS_PORT', 6379 );
@@ -41,5 +41,4 @@ define( 'WP_CACHE', true );
 if ( ! defined( 'ABSPATH' ) ) {
     define( 'ABSPATH', __DIR__ . '/' );
 }
-
 require_once ABSPATH . 'wp-settings.php'; 
