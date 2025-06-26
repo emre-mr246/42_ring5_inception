@@ -1,9 +1,14 @@
 FROM debian:12-slim
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        python3 \
-        && rm -rf /var/lib/apt/lists/* && \
+RUN echo 'Acquire::http::Pipeline-Depth "0";' >> /etc/apt/apt.conf.d/99network && \
+    echo 'APT::Install-Recommends "false";' >> /etc/apt/apt.conf.d/99network
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    python3 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     groupadd --system staticpage && \
     useradd --system --gid staticpage --home-dir /var/www/html staticpage
 

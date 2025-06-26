@@ -1,6 +1,6 @@
 services:
   nginx:
-    image: nginx-42
+    image: localhost:5000/nginx
     ports:
       - 443:443
     deploy:
@@ -8,7 +8,7 @@ services:
       restart_policy:
         condition: on-failure
     volumes:
-      - wordpress_data:/var/www/html:rom
+      - wordpress_data:/var/www/html:ro
     networks:
       - inception_network
     secrets:
@@ -17,14 +17,14 @@ services:
       - nginx_ssl_dhparam
       - nginx_ssl_fullchain
     healthcheck:
-      test: ["CMD", "curl", "--insecure", "https://localhost"]
+      test: ["CMD-SHELL", "nc -z localhost 443"]
       interval: 5s
       timeout: 10s
       start_period: 40s
       retries: 3
 
   mariadb:
-    image: mariadb-42
+    image: localhost:5000/mariadb
     volumes:
       - mariadb_data:/var/lib/mysql:rw
     networks:
@@ -38,15 +38,9 @@ services:
       - mysql_root_password
     env_file:
       - ./env/.env_mariadb
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD}"]
-      interval: 5s
-      timeout: 10s
-      start_period: 40s
-      retries: 3
 
   adminer:
-    image: adminer-42
+    image: localhost:5000/adminer
     ports:
       - "8080:8080"
     deploy:
@@ -65,7 +59,7 @@ services:
       retries: 3
 
   wordpress:
-    image: wordpress-42
+    image: localhost:5000/wordpress
     deploy:
       replicas: 1
       restart_policy:
@@ -88,7 +82,7 @@ services:
       retries: 3
 
   redis:
-    image: redis-42
+    image: localhost:5000/redis
     deploy:
       replicas: 1
       restart_policy:
@@ -107,7 +101,7 @@ services:
       retries: 3
 
   ftp-server:
-    image: ftp-server-42
+    image: localhost:5000/ftp-server
     ports:
       - "21:21"
       - "21100-21110:21100-21110"
@@ -127,7 +121,7 @@ services:
       - ./env/.env_ftp_server
 
   log-collector:
-    image: log-collector-42
+    image: localhost:5000/log-collector
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - logs_data:/mnt/log_backups
@@ -146,7 +140,7 @@ services:
         condition: on-failure
 
   static-page:
-    image: static-page-42
+    image: localhost:5000/static-page
     deploy:
       replicas: 1
       restart_policy:

@@ -1,14 +1,19 @@
 FROM debian:12-slim
 
-RUN apt-get update \
- && apt-get install -y --no-install-recommends \
-      php8.2-cli \
-      php8.2-mysql \
-      wget \
-      ca-certificates \
-      curl \
-      netcat-openbsd \
- && rm -rf /var/lib/apt/lists/*
+RUN echo 'Acquire::http::Pipeline-Depth "0";' >> /etc/apt/apt.conf.d/99network && \
+    echo 'APT::Install-Recommends "false";' >> /etc/apt/apt.conf.d/99network
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    php8.2-cli \
+    php8.2-mysql \
+    wget \
+    ca-certificates \
+    curl \
+    netcat-openbsd && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 RUN groupadd --system adminer \
  && useradd --system --gid adminer --home-dir /var/www/html adminer \

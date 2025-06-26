@@ -5,7 +5,6 @@ mkdir -p /etc/nginx/ssl
 
 if [ -f "/run/secrets/nginx_ssl_cert" ]; then
     cp /run/secrets/nginx_ssl_cert /etc/nginx/ssl/emgul.42.fr.crt
-    echo "SSL certificate copied from secret"
 else
     echo "ERROR: nginx_ssl_cert secret not found!"
     exit 1
@@ -14,7 +13,6 @@ fi
 if [ -f "/run/secrets/nginx_ssl_key" ]; then
     cp /run/secrets/nginx_ssl_key /etc/nginx/ssl/emgul.42.fr.key
     chmod 600 /etc/nginx/ssl/emgul.42.fr.key
-    echo "SSL private key copied from secret"
 else
     echo "ERROR: nginx_ssl_key secret not found!"
     exit 1
@@ -22,7 +20,6 @@ fi
 
 if [ -f "/run/secrets/nginx_ssl_fullchain" ]; then
     cp /run/secrets/nginx_ssl_fullchain /etc/nginx/ssl/emgul.42.fr.fullchain.pem
-    echo "SSL fullchain copied from secret"
 else
     echo "ERROR: nginx_ssl_fullchain secret not found!"
     exit 1
@@ -30,7 +27,6 @@ fi
 
 if [ -f "/run/secrets/nginx_ssl_dhparam" ]; then
     cp /run/secrets/nginx_ssl_dhparam /etc/nginx/ssl/dhparam.pem
-    echo "DH parameters copied from secret"
 else
     echo "ERROR: nginx_ssl_dhparam secret not found!"
     exit 1
@@ -46,9 +42,6 @@ if command -v nslookup >/dev/null 2>&1; then
 else
     echo "nslookup not available, skipping DNS test"
 fi
-
-echo "Testing ping to wordpress..."
-ping -c 1 wordpress >/dev/null 2>&1 && echo "WordPress pingable" || echo "WordPress not pingable"
 
 echo "Waiting for WordPress PHP-FPM to be ready..."
 until nc -z wordpress 9000; do
