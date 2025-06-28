@@ -72,4 +72,4 @@ chown root:root /etc/vsftpd.userlist
 chmod 600 /etc/vsftpd.userlist
 
 echo "Starting vsftpd..."
-/usr/sbin/vsftpd -obackground=NO /etc/vsftpd.conf &
+/usr/sbin/vsftpd -obackground=NO /etc/vsftpd.conf
