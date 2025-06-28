@@ -31,7 +31,7 @@ This project includes the following services:
 *   **Adminer:** Database management tool.
 *   **Redis:** In-memory data structure store, used as a cache.
 *   **FTP Server:** For file transfer.
-*   **Log Collector:** Collects logs from other services and sends them to the Splunk Server using Splunk Forwarder.
+*   **Splunk Forwarder:** Collects logs from other services and sends them to the Splunk Server using Splunk Forwarder.
 *   **Static Page:** A simple static website.
 
 ## Usage ⚙️
@@ -44,6 +44,7 @@ This project includes the following services:
 *   **Make**
 *   `srcs/requirements/bonus/log_collector/tools/splunkforwarder.tgz` (must be placed manually)
 *   `srcs/env/.env_splunk_forwarder` (must be configured manually)
+*   `srcs/env/.env_wordpress` (must be configured manually)
 
 ### Build and Run
 

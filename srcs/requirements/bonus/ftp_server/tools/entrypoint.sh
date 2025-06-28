@@ -1,63 +1,75 @@
 #!/bin/bash
+set -e
 
-while [ ! -f /etc/vsftpd.conf ]; do
-    echo "Waiting for vsftpd.conf..."
-    sleep 1
-done
+if [ ! -f /etc/vsftpd.conf ]; then
+    echo "ERROR: vsftpd.conf not found!"
+    exit 1
+fi
 
 if [ -f /run/secrets/ftp_password ]; then
     FTP_PASSWORD=$(cat /run/secrets/ftp_password)
-    echo "FTP password loaded from secret"
 else
-    echo "Error: FTP password secret not found at /run/secrets/ftp_password"
+    echo "ERROR: FTP password secret not found!"
     exit 1
 fi
 
-echo "Setting up SSL certificates from Docker secrets..."
-mkdir -p /etc/vsftpd/ssl
-
-if [ -f "/run/secrets/ftp_ssl_cert" ]; then
-    cp /run/secrets/ftp_ssl_cert /etc/vsftpd/ssl/vsftpd.pem
-    chmod 600 /etc/vsftpd/ssl/vsftpd.pem
-    echo "FTP SSL certificate copied from secret"
-else
-    echo "ERROR: ftp_ssl_cert secret not found!"
-    exit 1
-fi
-
-if [ -f "/run/secrets/ftp_ssl_key" ]; then
-    cp /run/secrets/ftp_ssl_key /etc/vsftpd/ssl/vsftpd.key
-    chmod 600 /etc/vsftpd/ssl/vsftpd.key
-    echo "FTP SSL private key copied from secret"
-else
-    echo "ERROR: ftp_ssl_key secret not found!"
-    exit 1
-fi
-
-if ! id -u ftpuser >/dev/null 2>&1; then
-    echo "Creating ftpuser..."
-    useradd -M -d /var/www/html ftpuser
-    echo "ftpuser:$FTP_PASSWORD" | chpasswd
-    if [ $? -eq 0 ]; then
-        echo "Password set successfully for ftpuser"
-    else
-        echo "Error: Failed to set password for ftpuser"
-        exit 1
-    fi
-    chown -R ftpuser:ftpuser /var/www/html
-    chmod 755 /var/www/html
-    echo "ftpuser" > /etc/vsftpd.userlist
-    echo "ftpuser added to userlist"
-else
-    echo "ftpuser already exists"
+if ! id -u vsftpd >/dev/null 2>&1; then
+    useradd -M -d /var/run/vsftpd -s /usr/sbin/nologin vsftpd
+    echo "vsftpd user created"
 fi
 
 mkdir -p /var/run/vsftpd/empty
 chown root:root /var/run/vsftpd/empty
 chmod 555 /var/run/vsftpd/empty
+
+mkdir -p /etc/vsftpd/ssl
+if [ -f "/run/secrets/ftp_ssl_cert" ]; then
+    cp /run/secrets/ftp_ssl_cert /etc/vsftpd/ssl/vsftpd.pem
+    chown vsftpd:vsftpd /etc/vsftpd/ssl/vsftpd.pem
+    chmod 600 /etc/vsftpd/ssl/vsftpd.pem
+    echo "SSL certificate configured"
+else
+    echo "ERROR: SSL certificate not found!"
+    exit 1
+fi
+if [ -f "/run/secrets/ftp_ssl_key" ]; then
+    cp /run/secrets/ftp_ssl_key /etc/vsftpd/ssl/vsftpd.key
+    chown vsftpd:vsftpd /etc/vsftpd/ssl/vsftpd.key
+    chmod 600 /etc/vsftpd/ssl/vsftpd.key
+    echo "SSL private key configured"
+else
+    echo "ERROR: SSL private key not found!"
+    exit 1
+fi
+
+echo "Validating SSL certificates..."
+if ! openssl x509 -in /etc/vsftpd/ssl/vsftpd.pem -text -noout >/dev/null 2>&1; then
+    echo "ERROR: Invalid SSL certificate!"
+    exit 1
+fi
+
+if ! openssl rsa -in /etc/vsftpd/ssl/vsftpd.key -check -noout >/dev/null 2>&1; then
+    echo "ERROR: Invalid SSL private key!"
+    exit 1
+fi
+
+if ! id -u ftpuser >/dev/null 2>&1; then
+    useradd -M -d /var/www/html -s /usr/sbin/nologin ftpuser
+    echo "ftpuser created"
+fi
+echo "ftpuser:$FTP_PASSWORD" | chpasswd
+
+mkdir -p /var/www/html
+chown ftpuser:ftpuser /var/www/html
+chmod 755 /var/www/html
+
 mkdir -p /var/log/vsftpd
 touch /var/log/vsftpd/vsftpd.log
 chmod 644 /var/log/vsftpd/vsftpd.log
 
-echo "Starting vsftpd in foreground mode..."
-exec vsftpd /etc/vsftpd.conf
+echo "ftpuser" > /etc/vsftpd.userlist
+chown root:root /etc/vsftpd.userlist
+chmod 600 /etc/vsftpd.userlist
+
+echo "Starting vsftpd..."
+/usr/sbin/vsftpd -obackground=NO /etc/vsftpd.conf &

@@ -16,7 +16,7 @@ BUILD_PATHS = \
 	docker build -t localhost:$(REGISTRY_PORT)/ftp-server ./srcs/requirements/bonus/ftp_server && \
 	docker build -t localhost:$(REGISTRY_PORT)/redis ./srcs/requirements/bonus/redis && \
 	docker build -t localhost:$(REGISTRY_PORT)/adminer ./srcs/requirements/bonus/adminer && \
-	docker build -t localhost:$(REGISTRY_PORT)/log-collector ./srcs/requirements/bonus/log_collector && \
+	docker build -t localhost:$(REGISTRY_PORT)/splunk-forwarder ./srcs/requirements/bonus/splunk_forwarder && \
 	docker build -t localhost:$(REGISTRY_PORT)/static-page ./srcs/requirements/bonus/static_page
 
 all: build
@@ -26,7 +26,7 @@ build: init_swarm init_registry create_network generate_certs create_secrets pus
 	@sudo sysctl --write vm.overcommit_memory=1
 	@echo "Deploying stack to Docker Swarm..."
 	@docker stack deploy --compose-file ./srcs/docker-compose.yml $(STACK_NAME)
-	@sleep 10 && make --no-print-directory status
+	@make --no-print-directory status
 
 init_swarm:
 	@if ! docker info --format '{{.Swarm.ControlAvailable}}' | grep --quiet true; then \
@@ -39,7 +39,7 @@ init_swarm:
 init_registry:
 	@if ! docker ps --filter "name=$(REGISTRY_NAME)" --format "{{.Names}}" | grep -q $(REGISTRY_NAME); then \
 		echo "Starting local Docker registry..."; \
-		docker run --detach --publish $(REGISTRY_PORT):5000 --name $(REGISTRY_NAME) --restart=always registry:2; \
+		docker run --detach=true --publish $(REGISTRY_PORT):5000 --name $(REGISTRY_NAME) --restart=always registry:2; \
 	else \
 		echo "Registry already running."; \
 	fi
@@ -52,7 +52,7 @@ push_images: build_images
 	@docker push localhost:$(REGISTRY_PORT)/ftp-server
 	@docker push localhost:$(REGISTRY_PORT)/redis
 	@docker push localhost:$(REGISTRY_PORT)/adminer
-	@docker push localhost:$(REGISTRY_PORT)/log-collector
+	@docker push localhost:$(REGISTRY_PORT)/splunk-forwarder
 	@docker push localhost:$(REGISTRY_PORT)/static-page
 	@echo "Images pushed successfully."
 
@@ -102,8 +102,11 @@ fix_perms: create_directories
 down: clean
 
 status:
-	@echo "\n"
-	@docker stack ps inception
+	@while true; do \
+		clear; \
+		docker stack ps $(STACK_NAME); \
+		sleep 1; \
+	done
 
 exec:
 	@read -p "Container name: " cname; \
@@ -123,23 +126,22 @@ clean:
 clear_data:
 	@echo "Clearing data directories..."
 	@sudo rm -rf $(HOME)/data .passwords
+	@sudo rm -rf srcs/certificates/
 	@echo "Data directories cleared successfully."
 
 clear_secrets:
 	@echo "Removing Docker secrets..."
 	@docker secret rm mysql_password mysql_root_password 2>/dev/null || true
-	@docker secret rm wordpress_db_password 2>/dev/null || true
+	@docker secret rm wordpress_db_password wordpress_admin_password wordpress_user_password 2>/dev/null || true
 	@docker secret rm redis_password ftp_password  2>/dev/null || true
 	@docker secret rm nginx_ssl_cert nginx_ssl_key nginx_ssl_dhparam nginx_ssl_fullchain 2>/dev/null || true
 	@docker secret rm ftp_ssl_cert ftp_ssl_key 2>/dev/null || true
+	@docker secret rm splunk_forwarder_pass splunk_server_ip 2>/dev/null || true
 
 fclean: clean clear_data clear_secrets
 	@echo "Pruning Docker system..."
 	@docker compose -f srcs/docker-compose.yml down --volumes --remove-orphans
-	@docker tag debian:12-slim preserved-debian:12-slim 2>/dev/null || true
-	@docker system prune --force --filter "label!=preserve=true"
-	@docker tag preserved-debian:12-slim debian:12-slim 2>/dev/null || true
-	@docker image rm preserved-debian:12-slim 2>/dev/null || true
+	@docker system prune --force
 	@echo "Cleanup completed, base images preserved"
 
 nuclear:  clean clear_data clear_secrets

@@ -1,10 +1,10 @@
 #!/bin/bash
 
 SPLUNK_USER="${SPLUNK_USER}"
-SPLUNK_PASS="${SPLUNK_PASS}"
 SPLUNK_INDEX="${SPLUNK_INDEX}"
 LOG_PATH="${LOG_PATH}"
-SPLUNK_SERVER="${SPLUNK_SERVER}"
+SPLUNK_PASS=$(cat /run/secrets/splunk_forwarder_pass)
+SPLUNK_SERVER=$(cat /run/secrets/splunk_server_ip)
 
 echo "Installing Splunk Universal Forwarder..."
 tar -xzf /tmp/splunkforwarder.tgz -C /opt
@@ -14,6 +14,7 @@ echo "export SPLUNK_HOME=/opt/splunkforwarder" >> ~/.bashrc
 
 echo "Configuring Splunk Universal Forwarder..."
 mkdir -p "/opt/splunkforwarder/etc/system/local"
+
 echo "Creating user-seed.conf..."
 cat > "/opt/splunkforwarder/etc/system/local/user-seed.conf" <<EOF
 [user_info]
@@ -26,9 +27,6 @@ cat > "/opt/splunkforwarder/etc/system/local/server.conf" <<EOF
 [sslConfig]
 enableSplunkdSSL = true
 sslVerifyServerCert = true
-
-[httpServer]
-disableDefaultPort = false
 EOF
 
 echo "Creating secure splunk-launch.conf..."
@@ -41,7 +39,7 @@ EOF
 
 cd /opt/splunkforwarder/bin
 
-echo "Starting Splunk Universal Forwarder..."
+echo "Starting Splunk Universal Forwarder for initial setup..."
 ./splunk start --accept-license --answer-yes --no-prompt
 
 tee "/opt/splunkforwarder/etc/system/local/inputs.conf" > /dev/null <<EOF
@@ -63,7 +61,7 @@ server = $SPLUNK_SERVER
 sendCookedData = true
 EOF
 
-echo "Restarting Splunk Universal Forwarder..."
-./splunk restart --accept-license --answer-yes --no-prompt
+echo "Stopping Splunk for foreground configuration..."
+./splunk stop
 
 echo "Splunk Universal Forwarder installed and configured successfully."

@@ -7,12 +7,8 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update -y && apt-get install -y \
     mariadb-server \
-    mariadb-client \
-    gosu \
-    curl \
-    procps \
-    net-tools \
-    && apt-get clean && \
+    mariadb-client && \
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 RUN groupmod -g 999 mysql && \

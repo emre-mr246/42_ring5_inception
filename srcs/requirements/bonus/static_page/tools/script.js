@@ -15,7 +15,6 @@ testBtn.addEventListener('click', () => {
 	runawayBtn.style.display = 'block';
 	setInitialRunawayPosition();
 	messageElement.style.display = 'none';
-	console.log("'Start Test' button clicked, runaway button is shown.");
 });
 
 runawayBtn.addEventListener('mouseover', () => {

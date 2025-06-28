@@ -3,22 +3,24 @@
 set -eu
 
 WORDPRESS_DB_PASSWORD=$(cat /run/secrets/wordpress_db_password)
+WORDPRESS_ADMIN_PASSWORD=$(cat /run/secrets/wordpress_admin_password)
+WORDPRESS_USER_PASSWORD=$(cat /run/secrets/wordpress_user_password)
 
 until mysql -h"$WORDPRESS_DB_HOST" -u"$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" -e "SELECT 1;" 2>/dev/null; do
   echo "Waiting for MariaDB to be ready..."
-  sleep 2
+  sleep 1
 done
 echo "[OK] MariaDB is ready"
 
 until nc -z redis 6379; do
   echo "Waiting for Redis to be ready..."
-  sleep 2
+  sleep 1
 done
 echo "[OK] Redis is ready"
 
 until nc -z ftp-server 21; do
   echo "Waiting for FTP server to be ready..."
-  sleep 2
+  sleep 1
 done
 echo "[OK] FTP server is ready"
 
@@ -108,12 +110,6 @@ mkdir -p wp-content
 chown -R www-data:www-data wp-content
 chmod -R 775 wp-content
 
-until mysql -h "$WORDPRESS_DB_HOST" -u "$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" -e ";" 2>/dev/null; do
-    log "Waiting for database connection..."
-    sleep 3
-done
-log "Database connection established."
-
 if run_wp core is-installed; then
     log "WordPress core already installed. Skipping installation."
 else
@@ -121,8 +117,8 @@ else
     run_wp core install \
         --url="${DOMAIN_NAME}" \
         --title="Inception - emgul" \
-        --admin_user="${WORDPRESS_DB_USER}" \
-        --admin_password="${WORDPRESS_DB_PASSWORD}" \
+        --admin_user="${WORDPRESS_ADMIN_USER}" \
+        --admin_password="${WORDPRESS_ADMIN_PASSWORD}" \
         --admin_email="admin@${DOMAIN_NAME}" \
         --skip-email
 
@@ -131,6 +127,13 @@ else
     log "Creating initial post..."
     chmod +x /usr/local/bin/create_post.sh
     /usr/local/bin/create_post.sh
+
+    log "Creating additional WordPress user..."
+    run_wp user create "${WORDPRESS_USER}" "${WORDPRESS_USER}@${DOMAIN_NAME}" \
+        --role=author \
+        --user_pass="${WORDPRESS_USER_PASSWORD}" \
+        --display_name="${WORDPRESS_USER}" \
+        --first_name="${WORDPRESS_USER}" || true
 
     log "Configuring Redis cache..."
     run_wp plugin install redis-cache --activate

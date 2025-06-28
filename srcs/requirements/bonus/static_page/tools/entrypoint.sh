@@ -9,10 +9,6 @@ if [ ! -f "index.html" ]; then
     ls -la
 fi
 
-echo "Serving static files from: $(pwd)"
-echo "Contents of web directory:"
-ls -la
-
 echo "Static Page HTTP Server starting on port 8000..."
 
 if [ -d "/var/www/html" ] && [ "$(pwd)" != "/var/www/html" ]; then

@@ -10,7 +10,6 @@ RUN apt-get update && apt-get install -y \
     php8.2-mysql \
     wget \
     ca-certificates \
-    curl \
     netcat-openbsd && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -22,12 +21,10 @@ RUN groupadd --system adminer \
 
 WORKDIR /var/www/html
 
-ARG ADMINER_VERSION=5.3.0
-ARG ADMINER_FILENAME=adminer-${ADMINER_VERSION}-mysql-en.php
 ARG ADMINER_SHA256=ff627c90795371e2c81c1815902fdce80833f5630f3c9a2dc864244da6784f2d
 RUN wget -qO index.php \
-    https://github.com/vrana/adminer/releases/download/v${ADMINER_VERSION}/${ADMINER_FILENAME} \
-    && echo "${ADMINER_SHA256}  index.php" | sha256sum -c -
+    https://github.com/vrana/adminer/releases/download/v5.3.0/adminer-5.3.0-mysql-en.php \
+    && echo "${ADMINER_SHA256} index.php" | sha256sum -c -
 
 COPY tools/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh

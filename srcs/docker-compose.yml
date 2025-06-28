@@ -70,6 +70,8 @@ services:
       - inception_network
     secrets:
       - wordpress_db_password
+      - wordpress_admin_password
+      - wordpress_user_password
       - redis_password
       - ftp_password
     env_file:
@@ -120,13 +122,12 @@ services:
     env_file:
       - ./env/.env_ftp_server
 
-  log-collector:
-    image: localhost:5000/log-collector
+  splunk-forwarder:
+    image: localhost:5000/splunk-forwarder
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - logs_data:/mnt/log_backups
     env_file:
-      - ./env/.env_log_collector
       - ./env/.env_splunk_forwarder
     secrets:
       - splunk_forwarder_pass
@@ -162,6 +163,10 @@ secrets:
   mysql_root_password:
     external: true
   wordpress_db_password:
+    external: true
+  wordpress_admin_password:
+    external: true
+  wordpress_user_password:
     external: true
   redis_password:
     external: true

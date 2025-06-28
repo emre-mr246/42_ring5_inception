@@ -13,3 +13,6 @@ srcs/certificates/
 # Splunk
 .env_splunk_forwarder
 splunkforwarder.tgz
+
+# Wordpress
+.env_wordpress

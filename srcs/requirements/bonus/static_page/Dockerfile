@@ -14,8 +14,7 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /var/www/html
 
-COPY ./tools/*.html ./tools/*.css ./tools/*.js ./tools/*.png ./
-
+COPY ./tools/index.html ./tools/style.css ./tools/script.js ./tools/congrats.png ./
 COPY ./tools/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 RUN chmod +x /usr/local/bin/entrypoint.sh && \
