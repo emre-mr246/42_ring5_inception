@@ -1,59 +1,86 @@
 #!/bin/bash
 
+if [ -f "/run/secrets/splunk_forwarder_pass" ]; then
+    export SPLUNK_FORWARDER_PASS=$(cat /run/secrets/splunk_forwarder_pass)
+fi
+if [ -f "/run/secrets/splunk_server_ip" ]; then
+    export SPLUNK_SERVER_IP=$(cat /run/secrets/splunk_server_ip)
+fi
+
 ./install_splunk.sh
 
-PERSISTENT_LOG_DIR=${PERSISTENT_LOG_DIR}
-STACK_NAME=${STACK_NAME}
+LOG_DIR=${LOG_DIR}
 COLLECTION_INTERVAL=${LOG_COLLECTION_INTERVAL}
-INDIVIDUAL_LOGS_SUBDIR=${INDIVIDUAL_LOGS_SUBDIR}
 
-mkdir -p "$PERSISTENT_LOG_DIR/$INDIVIDUAL_LOGS_SUBDIR" || exit 1
+mkdir -p "$LOG_DIR" || exit 1
 
 collect_logs() {
-    local START_TIME=$(date +%s)
-    
     while true; do
-        SERVICES=$(curl -s --unix-socket /var/run/docker.sock "http://localhost/v1.50/services" | grep -o '"Name":"[^"]*' | cut -d'"' -f4 | grep "^${STACK_NAME}")
+        echo "$(date): Starting collection cycle" >&2
 
-        if [ -z "$SERVICES" ]; then
-            sleep 60
-            continue
-        fi
+        CONTAINERS_JSON=$(curl -s --unix-socket /var/run/docker.sock "http://localhost/v1.50/containers/json")
 
-        CURRENT_TIME=$(date +%s)
-        TIME_DIFF=$((CURRENT_TIME - START_TIME))
+        CONTAINERS=$(echo "$CONTAINERS_JSON" | grep -o '"Names":\["[^"]*"' | cut -d'"' -f4 | sed 's/^\///' | grep -v "splunk-forwarder")
 
-        for SERVICE_FULL_NAME in $SERVICES; do
-            SERVICE_SHORT_NAME=$(echo "$SERVICE_FULL_NAME" | sed "s/^${STACK_NAME}_//")
-            INDIVIDUAL_LOG_FILE="$PERSISTENT_LOG_DIR/$INDIVIDUAL_LOGS_SUBDIR/${SERVICE_SHORT_NAME}.log"
+        for CONTAINER_NAME in $CONTAINERS; do
+            echo "Processing $CONTAINER_NAME..." >&2
 
+            CONTAINER_ID=$(echo "$CONTAINERS_JSON" | sed 's/},{/}\n{/g' | grep "\"Names\":\[\"/$CONTAINER_NAME\"" | sed 's/.*"Id":"\([^"]*\)".*/\1/')
+
+            if [ -z "$CONTAINER_ID" ]; then
+                echo "Could not find container ID for $CONTAINER_NAME" >&2
+                continue
+            fi
+
+            LOG_FILE="$LOG_DIR/${CONTAINER_NAME}.log"
+            
+            if [ -f "$LOG_FILE" ] && [ -s "$LOG_FILE" ]; then
+                LAST_TS=$(tail -1 "$LOG_FILE" | grep -o '^[0-9T:.-]*Z' | head -1 | xargs -I {} date -d {} +%s 2>/dev/null || echo "0")
+                [ "$LAST_TS" = "0" ] && LAST_TS=$(($(date +%s) - 60))
+            else
+                LAST_TS=$(($(date +%s) - 300))
+            fi
+
+            TEMP_FILE=$(mktemp)
             curl -s --unix-socket /var/run/docker.sock \
-                "http://localhost/v1.50/services/${SERVICE_FULL_NAME}/logs?stdout=true&stderr=true&timestamps=true&since=${TIME_DIFF}" | \
-                sed 's/^.\{8\}//' | \
-                grep -a '^[0-9]' >> "$INDIVIDUAL_LOG_FILE" 2>/dev/null
+                "http://localhost/v1.50/containers/${CONTAINER_ID}/logs?stdout=true&stderr=true&timestamps=true&since=${LAST_TS}" \
+                > "$TEMP_FILE"
+
+            NEW_LOGS=$(sed 's/^.\{8\}//' "$TEMP_FILE" | grep '^[0-9]' || true)
+
+            if [ -n "$NEW_LOGS" ]; then
+                echo "$NEW_LOGS" >> "$LOG_FILE"
+                echo "Added new logs for $CONTAINER_NAME" >&2
+            else
+                echo "No new logs for $CONTAINER_NAME" >&2
+            fi
+
+            rm -f "$TEMP_FILE"
         done
 
-        find "$PERSISTENT_LOG_DIR/$INDIVIDUAL_LOGS_SUBDIR" -name "*.log" -type f -size +102400k -exec tail -n 50000 {} \; -exec sh -c 'tail -n 50000 "$1" > "$1.tmp" && mv "$1.tmp" "$1"' _ {} \;
+        echo "$(date): Cycle completed, sleeping..." >&2
 
-        START_TIME=$CURRENT_TIME
+        find "$LOG_DIR" -name "*.log" -type f -size +100M -exec sh -c '
+            echo "Rotating log file: $1" >&2
+            tail -n 50000 "$1" > "$1.tmp" && mv "$1.tmp" "$1"
+        ' _ {} \;
+
         sleep "$COLLECTION_INTERVAL"
     done
 }
 
-echo "Starting Docker log collection in background..."
 collect_logs &
 LOG_COLLECTOR_PID=$!
 
 cleanup() {
-    echo "Shutting down log collector..."
-    kill $LOG_COLLECTOR_PID 2>/dev/null
+    echo "Shutting down log collector..." >&2
+    kill $LOG_COLLECTOR_PID 2>/dev/null || true
     /opt/splunkforwarder/bin/splunk stop
     exit 0
 }
 
 trap cleanup SIGTERM SIGINT
 
-echo "Starting Splunk Universal Forwarder in foreground..."
+echo "Starting Splunk Universal Forwarder..." >&2
 cd /opt/splunkforwarder/bin
-
 exec ./splunk start --accept-license --answer-yes --no-prompt --nodaemon

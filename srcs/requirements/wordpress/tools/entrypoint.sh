@@ -18,7 +18,7 @@ until nc -z redis 6379; do
 done
 echo "[OK] Redis is ready"
 
-until nc -z ftp-server 21; do
+until nc -z ftp-server 2121; do
   echo "Waiting for FTP server to be ready..."
   sleep 1
 done
@@ -104,11 +104,10 @@ else
 fi
 
 chown -R www-data:www-data /var/www/html
-chmod -R 755 /var/www/html
-chmod 644 "$CONFIG_FILE"
-mkdir -p wp-content
-chown -R www-data:www-data wp-content
-chmod -R 775 wp-content
+chmod -R 775 /var/www/html
+mkdir -p /var/www/html/wp-content/uploads /var/www/html/wp-content/plugins /var/www/html/wp-content/themes /var/www/html/wp-content/cache
+chown -R www-data:www-data /var/www/html/wp-content
+chmod -R 775 /var/www/html/wp-content
 
 if run_wp core is-installed; then
     log "WordPress core already installed. Skipping installation."

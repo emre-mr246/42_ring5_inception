@@ -2,7 +2,7 @@
 
 SPLUNK_USER="${SPLUNK_USER}"
 SPLUNK_INDEX="${SPLUNK_INDEX}"
-LOG_PATH="${LOG_PATH}"
+LOG_PATH="${LOG_DIR}"
 SPLUNK_PASS=$(cat /run/secrets/splunk_forwarder_pass)
 SPLUNK_SERVER=$(cat /run/secrets/splunk_server_ip)
 

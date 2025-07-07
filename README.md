@@ -39,10 +39,9 @@ This project includes the following services:
 ### Prerequisites
 
 *   **Docker Engine**
-*   **Docker Swarm mode**
-*   **Docker Compose** (not docker-compose)
+*   **Docker Compose**
 *   **Make**
-*   `srcs/requirements/bonus/log_collector/tools/splunkforwarder.tgz` (must be placed manually)
+*   `srcs/requirements/bonus/splunk_forwarder/tools/splunkforwarder.tgz` (must be placed manually)
 *   `srcs/env/.env_splunk_forwarder` (must be configured manually)
 *   `srcs/env/.env_wordpress` (must be configured manually)
 
@@ -58,19 +57,20 @@ This project includes the following services:
     ```bash
     make
     ```
+
     This command will:
-    *   Initialize Docker Swarm if not already active.
-    *   Create necessary data directories (`~/data/*`).
-    *   Create a Docker network named `inception_network`.
-    *   Generate SSL certificates.
-    *   Create Docker Swarm secrets for secure credential management.
-    *   Build all Docker images for the services.
-    *   Create Docker volumes for persistent data.
-    *   Fix permissions for data directories.
-    *   Deploy the stack using `docker-compose.yml`.
-    *   Display the status of the services and IP information to access the site.
+    *   Create necessary data directories in `~/data`.
+    *   Set the correct permissions for the data directories.
+    *   Create Docker volumes for persistent data storage.
+    *   Generate SSL certificates for Nginx.
+    *   Create secret files for service credentials.
+    *   Build the Docker images and start all services in the background using Docker Compose.
+    *   Display the real-time status of the running services.
 
 3.  **Access the website:**
+    *   **WordPress:** `https://emgul.42.fr`
+
+    You can open the main site in your browser:
     ```bash
-    firefox https://emgul.42.fr/static
+    firefox https://emgul.42.fr
     ```

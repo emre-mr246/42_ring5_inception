@@ -8,7 +8,7 @@ srcs/certificates/
 *.pfx
 
 # Passwords
-.passwords
+secrets
 
 # Splunk
 .env_splunk_forwarder

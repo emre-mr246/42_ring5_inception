@@ -1,12 +1,10 @@
 services:
   nginx:
-    image: localhost:5000/nginx
+    build: ./requirements/nginx
     ports:
       - 443:443
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
+    container_name: nginx
+    restart: on-failure
     volumes:
       - wordpress_data:/var/www/html:ro
     networks:
@@ -24,15 +22,13 @@ services:
       retries: 3
 
   mariadb:
-    image: localhost:5000/mariadb
+    build: ./requirements/mariadb
     volumes:
       - mariadb_data:/var/lib/mysql:rw
     networks:
       - inception_network
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
+    container_name: mariadb
+    restart: on-failure
     secrets:
       - mysql_password
       - mysql_root_password
@@ -40,13 +36,11 @@ services:
       - ./env/.env_mariadb
 
   adminer:
-    image: localhost:5000/adminer
+    build: ./requirements/bonus/adminer
     ports:
       - "8080:8080"
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
+    container_name: adminer
+    restart: on-failure
     networks:
       - inception_network
     env_file:
@@ -59,11 +53,9 @@ services:
       retries: 3
 
   wordpress:
-    image: localhost:5000/wordpress
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
+    build: ./requirements/wordpress
+    container_name: wordpress
+    restart: on-failure
     volumes:
       - wordpress_data:/var/www/html:rw
     networks:
@@ -84,11 +76,9 @@ services:
       retries: 3
 
   redis:
-    image: localhost:5000/redis
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
+    build: ./requirements/bonus/redis
+    container_name: redis
+    restart: on-failure
     volumes:
       - redis_data:/data:rw
     networks:
@@ -103,14 +93,12 @@ services:
       retries: 3
 
   ftp-server:
-    image: localhost:5000/ftp-server
+    build: ./requirements/bonus/ftp_server
+    container_name: ftp-server
     ports:
-      - "21:21"
+      - "2121:2121"
       - "21100-21110:21100-21110"
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
+    restart: on-failure
     volumes:
       - wordpress_data:/var/www/html:rw
     networks:
@@ -123,7 +111,8 @@ services:
       - ./env/.env_ftp_server
 
   splunk-forwarder:
-    image: localhost:5000/splunk-forwarder
+    build: ./requirements/bonus/splunk_forwarder
+    container_name: splunk-forwarder
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - logs_data:/mnt/log_backups
@@ -133,19 +122,12 @@ services:
       - splunk_forwarder_pass
       - splunk_server_ip
     tty: true
-    deploy:
-      replicas: 1
-      placement:
-        constraints: [node.role == manager]
-      restart_policy:
-        condition: on-failure
+    restart: on-failure
 
   static-page:
-    image: localhost:5000/static-page
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
+    build: ./requirements/bonus/static_page
+    container_name: static-page
+    restart: on-failure
     volumes:
       - static_page_data:/var/www/html
     networks:
@@ -159,49 +141,67 @@ services:
 
 secrets:
   mysql_password:
-    external: true
+    file: ./secrets/mysql_password.txt
   mysql_root_password:
-    external: true
+    file: ./secrets/mysql_root_password.txt
   wordpress_db_password:
-    external: true
+    file: ./secrets/wordpress_db_password.txt
   wordpress_admin_password:
-    external: true
+    file: ./secrets/wordpress_admin_password.txt
   wordpress_user_password:
-    external: true
+    file: ./secrets/wordpress_user_password.txt
   redis_password:
-    external: true
+    file: ./secrets/redis_password.txt
   ftp_password:
-    external: true
+    file: ./secrets/ftp_password.txt
   nginx_ssl_cert:
-    external: true
+    file: ./secrets/nginx_ssl_cert.pem
   nginx_ssl_key:
-    external: true
+    file: ./secrets/nginx_ssl_key.pem
   nginx_ssl_dhparam:
-    external: true
+    file: ./secrets/nginx_ssl_dhparam.pem
   nginx_ssl_fullchain:
-    external: true
+    file: ./secrets/nginx_ssl_fullchain.pem
   ftp_ssl_cert:
-    external: true
+    file: ./secrets/ftp_ssl_cert.pem
   ftp_ssl_key:
-    external: true
+    file: ./secrets/ftp_ssl_key.pem
   splunk_forwarder_pass:
-    external: true
+    file: ./secrets/splunk_forwarder_pass.txt
   splunk_server_ip:
-    external: true
+    file: ./secrets/splunk_server_ip.txt
 
 volumes:
   mariadb_data:
-    external: true
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HOME}/data/mysql
   wordpress_data:
-    external: true
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HOME}/data/wordpress
   redis_data:
-    external: true
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HOME}/data/redis
   static_page_data:
-    external: true
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HOME}/data/static_page
   logs_data:
-    external: true
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HOME}/data/logs
 
 networks:
   inception_network:
-    driver: overlay
-    external: true

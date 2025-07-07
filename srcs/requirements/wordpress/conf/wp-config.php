@@ -18,19 +18,19 @@ define( 'NONCE_SALT',       '${NONCE_SALT}' );
 
 $table_prefix = 'wp_';
 
-define( 'WP_DEBUG', false );
-define( 'WP_DEBUG_LOG', false );
-define( 'WP_DEBUG_DISPLAY', false );
-
 define( 'WP_HOME', 'https://${DOMAIN_NAME}' );
 define( 'WP_SITEURL', 'https://${DOMAIN_NAME}' );
 
 define( 'FORCE_SSL_ADMIN', true );
 
-define( 'FTP_HOST', 'ftp-server' );
+define( 'FS_METHOD', 'ftpext' );
+define( 'FTP_HOST', 'ftp-server:2121' );
+define( 'FTP_BASE', '/' );
+define( 'FTP_CONTENT_DIR', '/wp-content/' );
+define( 'FTP_PLUGIN_DIR', '/wp-content/plugins/' );
 define( 'FTP_USER', 'ftpuser' );
 define( 'FTP_PASS', '${FTP_PASS}' );
-define( 'FTP_SSL', true );
+define( 'FTP_SSL', false );
 
 define( 'WP_REDIS_HOST', 'redis' );
 define( 'WP_REDIS_PORT', 6379 );
@@ -41,4 +41,4 @@ define( 'WP_CACHE', true );
 if ( ! defined( 'ABSPATH' ) ) {
     define( 'ABSPATH', __DIR__ . '/' );
 }
-require_once ABSPATH . 'wp-settings.php'; 
+require_once ABSPATH . 'wp-settings.php';

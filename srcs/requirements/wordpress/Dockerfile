@@ -13,6 +13,7 @@ RUN apt-get update && apt-get -y install \
     php8.2-mysql \
     php8.2-cli \
     php-redis \
+    ftp \
     netcat-openbsd \
     mariadb-client \
     gosu && \
@@ -29,7 +30,7 @@ RUN sed -i 's/^;*error_log = .*/error_log = \/tmp\/php8.2-fpm.log/' /etc/php/8.2
 RUN wget --quiet --output-document /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && \
     chmod +x /usr/local/bin/wp
 
-RUN mkdir --parents /var/www/html /run/php && \
+RUN mkdir --parents /run/php /var/www/html && \
     chown --recursive www-data:www-data /var/www/html /run/php && \
     chmod --recursive 755 /var/www/html /run/php
 
