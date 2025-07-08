@@ -6,8 +6,7 @@ generate_password() {
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INCEPTION_ROOT="$(dirname "$SCRIPT_DIR")"
-SSL_DIR="$INCEPTION_ROOT/srcs/certificates/nginx"
-FTP_CERT_DIR="$INCEPTION_ROOT/srcs/certificates/ftp"
+SSL_DIR="$INCEPTION_ROOT/srcs/certificates"
 SECRETS_DIR="$INCEPTION_ROOT/srcs/secrets"
 
 mkdir -p "$SECRETS_DIR"
@@ -64,7 +63,7 @@ create_secret_file "nginx_ssl_cert.pem" "" "$SSL_DIR/emgul.42.fr.crt"
 create_secret_file "nginx_ssl_key.pem" "" "$SSL_DIR/emgul.42.fr.key"
 create_secret_file "nginx_ssl_fullchain.pem" "" "$SSL_DIR/emgul.42.fr.fullchain.pem"
 create_secret_file "nginx_ssl_dhparam.pem" "" "$SSL_DIR/dhparam.pem"
-create_secret_file "ftp_ssl_cert.pem" "" "$FTP_CERT_DIR/vsftpd.pem"
-create_secret_file "ftp_ssl_key.pem" "" "$FTP_CERT_DIR/vsftpd.key"
+
+rm -rf "$SSL_DIR"
 
 echo "Secrets creation completed!"

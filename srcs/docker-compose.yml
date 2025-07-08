@@ -105,8 +105,6 @@ services:
       - inception_network
     secrets:
       - ftp_password
-      - ftp_ssl_cert
-      - ftp_ssl_key
     env_file:
       - ./env/.env_ftp_server
 
@@ -162,10 +160,6 @@ secrets:
     file: ./secrets/nginx_ssl_dhparam.pem
   nginx_ssl_fullchain:
     file: ./secrets/nginx_ssl_fullchain.pem
-  ftp_ssl_cert:
-    file: ./secrets/ftp_ssl_cert.pem
-  ftp_ssl_key:
-    file: ./secrets/ftp_ssl_key.pem
   splunk_forwarder_pass:
     file: ./secrets/splunk_forwarder_pass.txt
   splunk_server_ip:

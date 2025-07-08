@@ -23,14 +23,12 @@ define( 'WP_SITEURL', 'https://${DOMAIN_NAME}' );
 
 define( 'FORCE_SSL_ADMIN', true );
 
-define( 'FS_METHOD', 'ftpext' );
 define( 'FTP_HOST', 'ftp-server:2121' );
 define( 'FTP_BASE', '/' );
 define( 'FTP_CONTENT_DIR', '/wp-content/' );
 define( 'FTP_PLUGIN_DIR', '/wp-content/plugins/' );
 define( 'FTP_USER', 'ftpuser' );
 define( 'FTP_PASS', '${FTP_PASS}' );
-define( 'FTP_SSL', false );
 
 define( 'WP_REDIS_HOST', 'redis' );
 define( 'WP_REDIS_PORT', 6379 );

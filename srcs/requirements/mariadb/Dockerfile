@@ -7,7 +7,6 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update -y && apt-get install -y \
     mariadb-server \
-    ftp \
     netcat-openbsd \
     mariadb-client && \
     apt-get clean && \

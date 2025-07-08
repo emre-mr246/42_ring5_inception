@@ -13,7 +13,6 @@ RUN apt-get update && apt-get -y install \
     php8.2-mysql \
     php8.2-cli \
     php-redis \
-    ftp \
     netcat-openbsd \
     mariadb-client \
     gosu && \

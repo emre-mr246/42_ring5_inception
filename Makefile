@@ -57,11 +57,12 @@ clean:
 
 clear_data:
 	@echo "Clearing data directories..."
-	@sudo rm -rf $(HOME)/data .passwords
+	@sudo rm -rf $(HOME)/data
 
 clear_secrets:
-	@echo "Removing secrets directory..."
+	@echo "Removing secrets..."
 	@sudo rm -rf srcs/secrets/
+	@sudo rm -rf srcs/certificates/
 
 fclean: clean clear_data clear_secrets
 	@echo "Stopping all containers..."
