@@ -64,6 +64,4 @@ create_secret_file "nginx_ssl_key.pem" "" "$SSL_DIR/emgul.42.fr.key"
 create_secret_file "nginx_ssl_fullchain.pem" "" "$SSL_DIR/emgul.42.fr.fullchain.pem"
 create_secret_file "nginx_ssl_dhparam.pem" "" "$SSL_DIR/dhparam.pem"
 
-rm -rf "$SSL_DIR"
-
 echo "Secrets creation completed!"

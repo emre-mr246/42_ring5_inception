@@ -18,20 +18,17 @@ until nc -z redis 6379; do
 done
 echo "[OK] Redis is ready"
 
-until nc -z ftp-server 2121; do
-  echo "Waiting for FTP server to be ready..."
-  sleep 1
-done
-echo "[OK] FTP server is ready"
+touch /var/log/php8.2-fpm.log
+mkdir --parents /run/php
+chown --recursive www-data:www-data /var/www/html /run/php /var/log/php8.2-fpm.log
 
-umask 027
+wget --quiet --output-document /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+chmod +x /usr/local/bin/wp
 
 WORDPRESS_ARCHIVE="wordpress-6.8.1.tar.gz"
-WORDPRESS_DIR="wordpress"
-CONFIG_FILE="wp-config.php"
 
 log() { echo "[INFO] $*"; }
-cleanup() { rm -rf "$WORDPRESS_ARCHIVE" "$WORDPRESS_DIR" /tmp/wp-args.* /tmp/wp-cli-cache; }
+cleanup() { rm -rf "$WORDPRESS_ARCHIVE" wordpress /tmp/wp-args.* /tmp/wp-cli-cache; }
 trap cleanup EXIT INT TERM
 
 run_wp() {
@@ -50,31 +47,22 @@ run_wp() {
     fi
 }
 
-WP_CLI_CACHE_DIR="/tmp/wp-cli-cache"
-mkdir -p "$WP_CLI_CACHE_DIR"
-chown www-data:www-data "$WP_CLI_CACHE_DIR"
-
-chown -R www-data:www-data /var/www/html /run/php
-
-if [ -f "./$CONFIG_FILE" ] && [ -f "./wp-settings.php" ] && grep -q "wp-settings.php" "./$CONFIG_FILE"; then
-    log "WordPress already exists and is properly configured. Skipping download."
+if  [ -f "/var/www/html/wp-settings.php" ] && [ -f "/var/www/html/wp-config.php" ] ; then
+    log "WordPress already exists. Skipping download."
 else
-    log "WordPress not found or improperly configured. Installing..."
+    log "WordPress not found. Installing..."
 
-    rm -f "./$CONFIG_FILE"
     rm -rf ./wp-*
 
     wget --quiet "https://wordpress.org/${WORDPRESS_ARCHIVE}"
     tar -xzf "$WORDPRESS_ARCHIVE"
-    
-    mv "$WORDPRESS_DIR"/* ./
-    chown -R www-data:www-data .
 
-    FTP_PASS="$(cat /run/secrets/ftp_password)"
-    REDIS_PASS="$(cat /run/secrets/redis_password)"
+    mv wordpress/* /var/www/html
+    chown -R www-data:www-data /var/www/html
 
     log "Creating WordPress configuration..."
-    
+    FTP_PASS="$(cat /run/secrets/ftp_password)"
+    REDIS_PASS="$(cat /run/secrets/redis_password)"
     AUTH_KEY="$(openssl rand -base64 48)"
     SECURE_AUTH_KEY="$(openssl rand -base64 48)"
     LOGGED_IN_KEY="$(openssl rand -base64 48)"
@@ -99,15 +87,12 @@ else
         -e "s|\${NONCE_SALT}|${NONCE_SALT}|g" \
         -e "s|\${FTP_PASS}|${FTP_PASS}|g" \
         -e "s|\${REDIS_PASS}|${REDIS_PASS}|g" \
-        "/usr/local/share/wp-config.php" > "$CONFIG_FILE"
+        "/usr/local/share/wp-config.php" > "wp-config.php"
     log "WordPress configuration complete."
 fi
 
-chown -R www-data:www-data /var/www/html
-chmod -R 775 /var/www/html
 mkdir -p /var/www/html/wp-content/uploads /var/www/html/wp-content/plugins /var/www/html/wp-content/themes /var/www/html/wp-content/cache
 chown -R www-data:www-data /var/www/html/wp-content
-chmod -R 775 /var/www/html/wp-content
 
 if run_wp core is-installed; then
     log "WordPress core already installed. Skipping installation."
@@ -121,8 +106,6 @@ else
         --admin_email="admin@${DOMAIN_NAME}" \
         --skip-email
 
-    log "WordPress installation successful."
-
     log "Creating initial post..."
     chmod +x /usr/local/bin/create_post.sh
     /usr/local/bin/create_post.sh
@@ -132,12 +115,11 @@ else
         --role=author \
         --user_pass="${WORDPRESS_USER_PASSWORD}" \
         --display_name="${WORDPRESS_USER}" \
-        --first_name="${WORDPRESS_USER}" || true
+        --first_name="${WORDPRESS_USER}"
 
     log "Configuring Redis cache..."
     run_wp plugin install redis-cache --activate
     run_wp redis enable
-    log "Redis cache enabled."
 fi
 
 echo "[OK] WordPress is installed and configured."

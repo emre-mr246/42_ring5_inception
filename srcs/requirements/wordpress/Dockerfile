@@ -24,15 +24,6 @@ COPY ./tools/create_post.sh /usr/local/bin/create_post.sh
 COPY ./conf/wp-config.php /usr/local/share/wp-config.php
 COPY ./tools/healthcheck.sh /usr/local/bin/healthcheck.sh
 
-RUN sed -i 's/^;*error_log = .*/error_log = \/tmp\/php8.2-fpm.log/' /etc/php/8.2/fpm/php-fpm.conf || true
-
-RUN wget --quiet --output-document /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && \
-    chmod +x /usr/local/bin/wp
-
-RUN mkdir --parents /run/php /var/www/html && \
-    chown --recursive www-data:www-data /var/www/html /run/php && \
-    chmod --recursive 755 /var/www/html /run/php
-
 COPY ./tools/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 

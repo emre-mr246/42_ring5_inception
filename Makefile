@@ -7,37 +7,38 @@ LOG_DIR			= $(DATA_DIR)/logs
 
 all: build
 
-build: generate_certs create_secrets fix_perms
-	@echo "Setting vm.overcommit_memory to 1..."
-	@sudo sysctl --write vm.overcommit_memory=1
+build: set-overcommit create_secrets create_directories
 	@echo "Building and starting services..."
 	@docker compose --file ./srcs/docker-compose.yml up --detach --build
 	@make --no-print-directory status
 
-create_directories:
-	@echo "Creating data directories..."
-	@mkdir -p $(MYSQL_DIR) $(WP_DIR) $(REDIS_DIR) $(STATIC_PAGE_DIR) $(LOG_DIR)
+set-overcommit:
+	@echo "Setting vm.overcommit_memory to 1... (for Redis)"
+	@sudo sysctl --write vm.overcommit_memory=1
 
 generate_certs:
 	@echo "Generating SSL certificates..."
 	@bash ./scripts/generate_ssl.sh
 
-create_secrets:
+create_secrets: generate_certs
 	@echo "Creating secrets directory and files..."
 	@bash ./scripts/create_secrets.sh
 
-fix_perms: create_directories
-	@echo "Fixing directory permissions..."
-	@sudo chown -R 999:999 $(MYSQL_DIR) $(REDIS_DIR)
-	@sudo chown -R 33:33 $(WP_DIR)
-	@sudo chown -R 1000:1000 $(LOG_DIR) $(STATIC_PAGE_DIR)
+create_directories:
+	@echo "Creating data directories..."
+	@mkdir -p $(MYSQL_DIR) $(WP_DIR) $(REDIS_DIR) $(STATIC_PAGE_DIR) $(LOG_DIR)
 
-down: clean
+down:
+	@echo "Stopping containers..."
+	@docker compose --file ./srcs/docker-compose.yml down
 
 status:
 	@while true; do \
 		clear; \
-		docker ps -a; \
+		echo "=== Container Status ===================="; \
+		docker ps -a --format "table {{.Names}}\t{{.Status}}"; \
+		echo "========================================="; \
+		echo "\nPress Ctrl+C to exit"; \
 		sleep 1; \
 	done
 
@@ -51,8 +52,7 @@ exec:
 	fi
 
 clean:
-	@echo "Stopping and removing containers..."
-	@docker compose --file ./srcs/docker-compose.yml down || true
+	@docker compose --file ./srcs/docker-compose.yml down
 	@docker network rm inception_network 2>/dev/null || true
 
 clear_data:
@@ -65,21 +65,24 @@ clear_secrets:
 	@sudo rm -rf srcs/certificates/
 
 fclean: clean clear_data clear_secrets
-	@echo "Stopping all containers..."
-	@docker stop $$(docker ps -aq) 2>/dev/null || true
 	@echo "Removing all containers..."
-	@docker rm $$(docker ps -aq) 2>/dev/null || true
+	@docker ps -aq | xargs -r docker rm
+
 	@echo "Removing all images..."
-	@docker rmi $$(docker images -q) 2>/dev/null || true
+	@docker images -q | xargs -r docker rmi
+
 	@echo "Removing all volumes..."
-	@docker volume rm $$(docker volume ls -q) 2>/dev/null || true
-	@echo "Removing all networks..."
-	@docker network rm $$(docker network ls -q) 2>/dev/null || true
+	@docker volume ls -q | xargs -r docker volume rm
+
+	@echo "Removing user-defined networks..."
+	@docker network ls --filter "type=custom" -q | xargs -r docker network rm
+
 	@echo "Pruning Docker system..."
-	@docker system prune --all --volumes --force 2>/dev/null || true
+	@docker system prune --all --volumes --force
+
 	@echo "Full cleanup completed!"
 
 re: clean build
 
 .PHONY: all build down status clean fclean re exec \
-create_directories generate_certs fix_perms create_secrets
+create_directories generate_certs create_secrets
