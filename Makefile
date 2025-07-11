@@ -62,7 +62,6 @@ clear_data:
 clear_secrets:
 	@echo "Removing secrets..."
 	@sudo rm -rf srcs/secrets/
-	@sudo rm -rf srcs/certificates/
 
 fclean: clean clear_data clear_secrets
 	@echo "Removing all containers..."

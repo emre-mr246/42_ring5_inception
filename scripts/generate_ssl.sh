@@ -2,46 +2,46 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INCEPTION_ROOT="$(dirname "$SCRIPT_DIR")"
-SSL_DIR="$INCEPTION_ROOT/srcs/certificates"
+SECRETS_DIR="$INCEPTION_ROOT/srcs/secrets"
 
 DOMAIN="emgul.42.fr"
 
-mkdir -p "$SSL_DIR"
+mkdir -p "$SECRETS_DIR"
 
-if [ ! -f "$SSL_DIR/dhparam.pem" ]; then
-    openssl dhparam -out "$SSL_DIR/dhparam.pem" 2048
+if [ ! -f "$SECRETS_DIR/nginx_ssl_dhparam.pem" ]; then
+    echo "Generating DH parameters..."
+    openssl dhparam -out "$SECRETS_DIR/nginx_ssl_dhparam.pem" 2048
 fi
 
-if [ ! -f "$SSL_DIR/ca-key.pem" ]; then
-    openssl genrsa -out "$SSL_DIR/ca-key.pem" 4096
+if [ ! -f "$SECRETS_DIR/ca-key.pem" ]; then
+    echo "Generating CA certificate..."
+    openssl genrsa -out "$SECRETS_DIR/ca-key.pem" 4096
     openssl req -new -x509 -sha256 -days 1825 \
-        -key "$SSL_DIR/ca-key.pem" \
-        -out "$SSL_DIR/ca-cert.pem" \
+        -key "$SECRETS_DIR/ca-key.pem" \
+        -out "$SECRETS_DIR/ca-cert.pem" \
         -subj "/CN=Local-CA/O=Inception/C=TR" \
         -addext "basicConstraints=critical,CA:true"
 fi
 
-if [ ! -f "$SSL_DIR/$DOMAIN.key" ]; then
-    openssl genrsa -out "$SSL_DIR/$DOMAIN.key" 2048
+if [ ! -f "$SECRETS_DIR/nginx_ssl_key.pem" ]; then
+    echo "Generating server certificate..."
+    openssl genrsa -out "$SECRETS_DIR/nginx_ssl_key.pem" 2048
 
     openssl req -new -sha256 \
-        -key "$SSL_DIR/$DOMAIN.key" \
-        -out "$SSL_DIR/$DOMAIN.csr" \
+        -key "$SECRETS_DIR/nginx_ssl_key.pem" \
+        -out "$SECRETS_DIR/$DOMAIN.csr" \
         -subj "/CN=$DOMAIN/O=Inception/C=TR"
 
-    openssl x509 -req -in "$SSL_DIR/$DOMAIN.csr" -days 1825 -sha256 \
-        -CA "$SSL_DIR/ca-cert.pem" -CAkey "$SSL_DIR/ca-key.pem" -CAcreateserial \
-        -out "$SSL_DIR/$DOMAIN.crt" \
+    openssl x509 -req -in "$SECRETS_DIR/$DOMAIN.csr" -days 1825 -sha256 \
+        -CA "$SECRETS_DIR/ca-cert.pem" -CAkey "$SECRETS_DIR/ca-key.pem" -CAcreateserial \
+        -out "$SECRETS_DIR/nginx_ssl_cert.pem" \
         -extfile <(printf "authorityKeyIdentifier=keyid,issuer\nbasicConstraints=CA:FALSE\nkeyUsage=digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth")
+    rm "$SECRETS_DIR/$DOMAIN.csr"
 fi
 
-cat $SSL_DIR/emgul.42.fr.crt $SSL_DIR/ca-cert.pem > $SSL_DIR/$DOMAIN.fullchain.pem
+cat "$SECRETS_DIR/nginx_ssl_cert.pem" "$SECRETS_DIR/ca-cert.pem" > "$SECRETS_DIR/nginx_ssl_fullchain.pem"
 
-chmod 644 "$SSL_DIR/ca-key.pem"
-chmod 644 "$SSL_DIR/ca-cert.pem"
-chmod 644 "$SSL_DIR/$DOMAIN.key"
-chmod 644 "$SSL_DIR/$DOMAIN.crt"
-chmod 644 "$SSL_DIR/dhparam.pem"
-chmod 644 "$SSL_DIR/$DOMAIN.fullchain.pem"
+chmod 644 "$SECRETS_DIR"/nginx_ssl_*.pem
+chmod 644 "$SECRETS_DIR"/ca-*.pem
 
-echo "SSL certificates generated successfully"
+echo "SSL certificates generated successfully."
