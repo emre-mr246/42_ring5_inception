@@ -26,6 +26,7 @@ wget --quiet --output-document /usr/local/bin/wp https://raw.githubusercontent.c
 chmod +x /usr/local/bin/wp
 
 WORDPRESS_ARCHIVE="wordpress-6.8.1.tar.gz"
+WORDPRESS_ARCHIVE_SHA256=3c654d079bc42c4e82ff20a6948c456293e104b6762ff7c9fc948071b3310328
 
 log() { echo "[INFO] $*"; }
 cleanup() { rm -rf "$WORDPRESS_ARCHIVE" wordpress /tmp/wp-args.* /tmp/wp-cli-cache; }
@@ -54,10 +55,12 @@ else
 
     rm -rf ./wp-*
 
-    wget --quiet "https://wordpress.org/${WORDPRESS_ARCHIVE}"
-    tar -xzf "$WORDPRESS_ARCHIVE"
+    wget --quiet "https://wordpress.org/${WORDPRESS_ARCHIVE}" && \
+    echo "${WORDPRESS_ARCHIVE_SHA256} ${WORDPRESS_ARCHIVE}" | sha256sum -c -
 
+    tar -xzf "$WORDPRESS_ARCHIVE"
     mv wordpress/* /var/www/html
+    
     chown -R www-data:www-data /var/www/html
 
     log "Creating WordPress configuration..."

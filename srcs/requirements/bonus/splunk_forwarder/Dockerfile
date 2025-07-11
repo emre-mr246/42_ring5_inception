@@ -13,11 +13,10 @@ RUN apt-get update && apt-get install -y \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-WORKDIR /splunk
+COPY ./tools/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY ./tools/install_splunk.sh /usr/local/bin/install_splunk.sh
+RUN chmod +x /usr/local/bin/install_splunk.sh /usr/local/bin/entrypoint.sh
 
-COPY ./tools/entrypoint.sh .
-COPY ./tools/install_splunk.sh .
 COPY ./tools/splunkforwarder.tgz /tmp/splunkforwarder.tgz
-RUN chmod +x entrypoint.sh install_splunk.sh
 
-CMD ["/splunk/entrypoint.sh"]
+CMD ["/usr/local/bin/entrypoint.sh"]

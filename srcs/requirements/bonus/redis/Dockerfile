@@ -8,8 +8,9 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     redis-server \
     gosu \
-    && rm -rf /var/lib/apt/lists/* && \
-    mkdir -p /etc/redis /data && \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /etc/redis /data && \
     chown -R redis:redis /etc/redis /data && \
     chmod 755 /etc/redis
 
@@ -18,8 +19,6 @@ RUN chmod 644 /etc/redis/redis.conf
 
 COPY tools/entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh
-
-VOLUME ["/data"]
 
 EXPOSE 6379
 

@@ -34,6 +34,12 @@ services:
       - mysql_root_password
     env_file:
       - ./env/.env_mariadb
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root --password=$(cat /run/secrets/mysql_root_password)"]
+      interval: 5s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
 
   adminer:
     build: ./requirements/bonus/adminer
@@ -107,6 +113,12 @@ services:
       - ftp_password
     env_file:
       - ./env/.env_ftp_server
+    healthcheck:
+        test: ["CMD-SHELL", "echo 'QUIT' | nc localhost 2121"]
+        interval: 5s
+        timeout: 10s
+        start_period: 30s
+        retries: 3
 
   splunk-forwarder:
     build: ./requirements/bonus/splunk_forwarder
@@ -121,6 +133,12 @@ services:
       - splunk_server_ip
     tty: true
     restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f splunkd > /dev/null"]
+      interval: 5s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
 
   static-page:
     build: ./requirements/bonus/static_page

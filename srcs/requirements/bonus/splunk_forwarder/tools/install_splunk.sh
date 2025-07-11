@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ ! -f "/run/secrets/splunk_forwarder_pass" ] || [ ! -f "/run/secrets/splunk_server_ip" ]; then
+    echo "ERROR: Secret files not found!"
+    exit 1
+fi
+
 SPLUNK_USER="${SPLUNK_USER}"
 SPLUNK_INDEX="${SPLUNK_INDEX}"
 LOG_PATH="${LOG_DIR}"
@@ -37,10 +42,8 @@ SPLUNK_WEB_NAME=splunkweb
 PYTHONHTTPSVERIFY=1
 EOF
 
-cd /opt/splunkforwarder/bin
-
 echo "Starting Splunk Universal Forwarder for initial setup..."
-./splunk start --accept-license --answer-yes --no-prompt
+/opt/splunkforwarder/bin/splunk start --accept-license --answer-yes --no-prompt
 
 tee "/opt/splunkforwarder/etc/system/local/inputs.conf" > /dev/null <<EOF
 [monitor://$LOG_PATH]
@@ -62,6 +65,6 @@ sendCookedData = true
 EOF
 
 echo "Stopping Splunk for foreground configuration..."
-./splunk stop
+/opt/splunkforwarder/bin/splunk stop
 
 echo "Splunk Universal Forwarder installed and configured successfully."

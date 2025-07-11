@@ -9,7 +9,6 @@ fi
 
 MYSQL_PASSWORD=$(cat /run/secrets/mysql_password)
 MYSQL_ROOT_PASSWORD=$(cat /run/secrets/mysql_root_password)
-
 echo "Secrets loaded successfully."
 
 if [ ! -d "/var/lib/mysql/mysql" ]; then
@@ -34,7 +33,6 @@ for i in {1..60}; do
 done
 
 echo "MariaDB is running. Configuring database and users..."
-
 mysql --silent <<EOSQL
 FLUSH PRIVILEGES;
 ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
@@ -44,11 +42,8 @@ GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'%';
 FLUSH PRIVILEGES;
 EOSQL
 
-echo "Database configuration completed successfully."
-
 echo "Stopping MariaDB safe mode..."
 kill "$MYSQL_PID" && wait "$MYSQL_PID"
-echo "MariaDB safe mode stopped."
 
 sleep 2
 

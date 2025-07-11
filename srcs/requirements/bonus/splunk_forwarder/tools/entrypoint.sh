@@ -7,7 +7,7 @@ if [ -f "/run/secrets/splunk_server_ip" ]; then
     export SPLUNK_SERVER_IP=$(cat /run/secrets/splunk_server_ip)
 fi
 
-./install_splunk.sh
+/usr/local/bin/install_splunk.sh
 
 LOG_DIR=${LOG_DIR}
 COLLECTION_INTERVAL=${LOG_COLLECTION_INTERVAL}
@@ -82,5 +82,4 @@ cleanup() {
 trap cleanup SIGTERM SIGINT
 
 echo "Starting Splunk Universal Forwarder..." >&2
-cd /opt/splunkforwarder/bin
-exec ./splunk start --accept-license --answer-yes --no-prompt --nodaemon
+exec /opt/splunkforwarder/bin/splunk start --accept-license --answer-yes --no-prompt --nodaemon
