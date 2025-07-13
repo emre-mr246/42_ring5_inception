@@ -9,4 +9,4 @@ if [ ! -f "index.html" ]; then
 fi
 
 echo "Static Page HTTP Server starting on port 8000..."
-exec python3 -m http.server 8000 --bind 0.0.0.0
+exec python3 -m http.server 8000 --bind 0.0.0.0 --directory /var/www/html
