@@ -36,7 +36,7 @@ status:
 	@while true; do \
 		clear; \
 		echo "=== Container Status ===================="; \
-		docker ps -a --format "table {{.Names}}\t{{.Status}}"; \
+		docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"; \
 		echo "========================================="; \
 		echo "\nPress Ctrl+C to exit"; \
 		sleep 1; \

@@ -15,8 +15,9 @@ RUN apt-get update && apt-get install -y \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 RUN groupadd --system adminer && \
-    useradd --system --gid adminer --home-dir /var/www/html adminer && \
-    mkdir -p /var/www/html
+    useradd --system --gid adminer --no-create-home adminer
+    
+RUN mkdir -p /var/www/html
 
 ARG ADMINER_SHA256=ff627c90795371e2c81c1815902fdce80833f5630f3c9a2dc864244da6784f2d
 RUN wget -qO /var/www/html/index.php \
