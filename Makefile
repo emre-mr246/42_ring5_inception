@@ -53,7 +53,7 @@ exec:
 
 clean:
 	@docker compose --file ./srcs/docker-compose.yml down
-	@docker network rm inception_network 2>/dev/null || true
+	@docker network ls --filter "type=custom" -q | xargs -r docker network rm
 
 clear_data:
 	@echo "Clearing data directories..."
@@ -84,4 +84,4 @@ fclean: clean clear_data clear_secrets
 re: clean build
 
 .PHONY: all build down status clean fclean re exec \
-create_directories generate_certs create_secrets
+create_directories generate_certs create_secrets set-overcommit clear_data clear_secrets
