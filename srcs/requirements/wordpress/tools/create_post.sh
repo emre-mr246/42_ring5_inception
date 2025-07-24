@@ -64,4 +64,3 @@ fi
 
 run_wp menu create "Main Menu"
 run_wp menu item add-post "Main Menu" "$page_id" --title="Home"
-run_wp menu location assign "Main Menu" primary

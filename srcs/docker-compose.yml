@@ -76,10 +76,10 @@ services:
       - ./env/.env_wordpress
     healthcheck:
       test: ["CMD-SHELL", "/usr/local/bin/healthcheck.sh"]
-      interval: 5s
-      timeout: 10s
-      start_period: 40s
-      retries: 3
+      interval: 3s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
 
   redis:
     build: ./requirements/bonus/redis

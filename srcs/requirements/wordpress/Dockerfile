@@ -25,7 +25,7 @@ COPY ./conf/wp-config.php /usr/local/share/wp-config.php
 COPY ./tools/healthcheck.sh /usr/local/bin/healthcheck.sh
 
 COPY ./tools/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/healthcheck.sh
 
 WORKDIR /var/www/html
 

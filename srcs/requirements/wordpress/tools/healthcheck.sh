@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -e
-
 echo "[INFO] Starting basic health check for WordPress..."
 
 if ! pgrep php-fpm8.2 > /dev/null 2>&1; then

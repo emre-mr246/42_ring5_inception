@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -eu
-
 WORDPRESS_DB_PASSWORD=$(cat /run/secrets/wordpress_db_password)
 WORDPRESS_ADMIN_PASSWORD=$(cat /run/secrets/wordpress_admin_password)
 WORDPRESS_USER_PASSWORD=$(cat /run/secrets/wordpress_user_password)
@@ -121,6 +119,11 @@ else
         --first_name="${WORDPRESS_USER}"
 
     log "Configuring Redis cache..."
+    mkdir /var/www/.wp-cli
+    touch /var/www/.wp-cli/cache
+    chown --recursive www-data:www-data /var/www/.wp-cli
+    chmod 655 /var/www/.wp-cli
+    chmod 644 /var/www/.wp-cli/cache
     run_wp plugin install redis-cache --activate
     run_wp redis enable
 fi
